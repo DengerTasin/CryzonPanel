@@ -1,0 +1,98 @@
+{% extends "admin/base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}Logs — {{ settings.site_name }}{% endblock %}
+{% block page_title %}Logs &amp; Audit{% endblock %}
+{% block page_sub %}Inspect system events and the full user activity trail{% endblock %}
+
+{% block topbar_actions %}
+{% if can('logs.manage') %}
+<form method="post" action="{{ url_for('admin.logs_clear') }}" data-confirm="Clear all system logs?">
+  <button class="btn btn-sm btn-danger">{{ icon('trash-2', 15) }} Clear Logs</button>
+</form>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="tabs mb-3" data-tabs="logs">
+  <button type="button" class="tab active" data-tab="system">{{ icon('file-text', 15) }} System Logs</button>
+  <button type="button" class="tab" data-tab="activity">{{ icon('activity', 15) }} Activity Audit</button>
+</div>
+
+<!-- System logs -->
+<div data-panel="system" data-scope="logs">
+  <div class="toolbar">
+    <span class="chip">{{ icon('file-text', 14) }} {{ logs|length }} entries</span>
+    <div class="spacer"></div>
+    <div class="search-box">
+      <span class="ic">{{ icon('search', 15) }}</span>
+      <input class="input" id="logSearch" placeholder="Filter messages…" onkeyup="filterRows('logTable', this.value)">
+    </div>
+  </div>
+  <div class="card reveal" style="padding:0;overflow:hidden">
+    <div class="table-wrap" style="border:none;border-radius:0">
+      <table class="data" id="logTable">
+        <thead><tr><th>Level</th><th>Message</th><th>Source</th><th>Timestamp</th></tr></thead>
+        <tbody>
+        {% for l in logs %}
+          <tr data-search="{{ (l.message ~ ' ' ~ l.source ~ ' ' ~ l.level)|lower }}">
+            <td><span class="badge {{ 'danger' if l.level in ['error','critical'] else ('warning' if l.level=='warning' else 'info') }}">{{ l.level }}</span></td>
+            <td class="text-sm">{{ l.message }}</td>
+            <td class="muted text-xs">{{ l.source }}</td>
+            <td class="muted text-xs nowrap mono">{{ l.created_at|dt('%Y-%m-%d %H:%M:%S') }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4"><div class="empty" style="padding:44px"><div class="e-ico">{{ icon('file-text', 30) }}</div><h3>No system logs</h3><p>Events will be recorded here as the platform runs.</p></div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Activity -->
+<div data-panel="activity" data-scope="logs" class="hidden">
+  <div class="toolbar">
+    <span class="chip">{{ icon('activity', 14) }} {{ activity|length }} actions</span>
+    <div class="spacer"></div>
+    <div class="search-box">
+      <span class="ic">{{ icon('search', 15) }}</span>
+      <input class="input" id="actSearch" placeholder="Filter activity…" onkeyup="filterRows('actTable', this.value)">
+    </div>
+  </div>
+  <div class="card reveal" style="padding:0;overflow:hidden">
+    <div class="table-wrap" style="border:none;border-radius:0">
+      <table class="data" id="actTable">
+        <thead><tr><th>User</th><th>Action</th><th>Resource</th><th>Details</th><th>IP</th><th>Time</th></tr></thead>
+        <tbody>
+        {% for a in activity %}
+          <tr data-search="{{ ((a.username or '') ~ ' ' ~ a.action ~ ' ' ~ (a.details or ''))|lower }}">
+            <td><span class="flex items-center gap-1 text-sm">{{ icon('user', 14) }} {{ a.username or 'system' }}</span></td>
+            <td><span class="badge primary">{{ a.action }}</span></td>
+            <td class="muted text-sm">{{ a.resource or '—' }}</td>
+            <td class="text-sm">{{ a.details or '—' }}</td>
+            <td class="muted text-xs mono">{{ a.ip_address or '—' }}</td>
+            <td class="muted text-xs nowrap">{{ a.created_at|dt('%Y-%m-%d %H:%M') }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6"><div class="empty" style="padding:44px"><div class="e-ico">{{ icon('activity', 30) }}</div><h3>No activity recorded</h3><p>User actions will appear here.</p></div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterRows(tableId, q) {
+  q = (q || '').toLowerCase().trim();
+  document.querySelectorAll('#' + tableId + ' tbody tr[data-search]').forEach(function (tr) {
+    tr.style.display = (!q || tr.dataset.search.indexOf(q) !== -1) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}Notifications — {{ settings.site_name }}{% endblock %}
+{% block page_title %}Notifications{% endblock %}
+{% block page_sub %}Stay up to date with everything happening on your account{% endblock %}
+
+{% block topbar_actions %}
+<form method="post" action="{{ url_for('main.notifications_read') }}">
+  <button class="btn btn-sm">{{ icon('check', 15) }} Mark all read</button>
+</form>
+{% endblock %}
+
+{% block content %}
+<div class="card reveal" style="padding:0;overflow:hidden">
+  {% for n in notifications %}
+  <div class="notif-item" style="padding:18px 22px;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;gap:14px;align-items:flex-start;{{ 'opacity:0.62' if n.is_read }}">
+    <span class="ni-ico {{ n.level }}" style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;
+      {% if n.level=='success' %}background:rgba(34,197,94,0.13);border:1px solid rgba(34,197,94,0.3);color:#86efac
+      {% elif n.level=='warning' %}background:rgba(245,158,11,0.13);border:1px solid rgba(245,158,11,0.3);color:#fcd34d
+      {% elif n.level=='error' %}background:rgba(239,68,68,0.13);border:1px solid rgba(239,68,68,0.3);color:#fca5a5
+      {% else %}background:rgba(56,189,248,0.13);border:1px solid rgba(56,189,248,0.3);color:#7dd3fc{% endif %}">
+      {% if n.level=='success' %}{{ icon('check-circle', 18) }}
+      {% elif n.level=='warning' %}{{ icon('alert-triangle', 18) }}
+      {% elif n.level=='error' %}{{ icon('x-circle', 18) }}
+      {% else %}{{ icon('info', 18) }}{% endif %}
+    </span>
+    <div style="flex:1;min-width:0">
+      <div class="flex items-center gap-1">
+        <b style="font-size:14px">{{ n.title }}</b>
+        {% if not n.is_read %}<span class="badge primary">New</span>{% endif %}
+      </div>
+      <div class="muted text-sm" style="margin-top:3px">{{ n.message }}</div>
+      <div class="muted text-xs" style="margin-top:6px">{{ icon('clock', 12) }} {{ n.created_at|dt('%b %d, %Y · %H:%M') }}</div>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty" style="padding:56px"><div class="e-ico">{{ icon('bell', 34) }}</div><h3>You're all caught up</h3><p>No notifications to show right now.</p></div>
+  {% endfor %}
+</div>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

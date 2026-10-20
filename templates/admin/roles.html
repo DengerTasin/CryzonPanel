@@ -1,0 +1,205 @@
+{% extends "admin/base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}Roles &amp; Permissions — {{ settings.site_name }}{% endblock %}
+{% block page_title %}Roles &amp; Permissions{% endblock %}
+{% block page_sub %}Build custom roles and grant granular permissions to your team{% endblock %}
+
+{% block topbar_actions %}
+{% if can('roles.manage') %}
+<button class="btn btn-primary btn-sm" data-modal-open="createRoleModal">{{ icon('plus', 15) }} New Role</button>
+{% endif %}
+{% endblock %}
+
+{% macro perm_matrix(selected, scope) %}
+<div data-perm-scope="{{ scope }}">
+  <div class="flex items-center justify-between mb-2" style="padding:0 4px">
+    <span class="text-sm muted" data-perm-total>0 selected</span>
+    <label class="check" style="padding:4px 10px">
+      <input type="checkbox" data-perm-toggle-all>
+      <span class="box">{{ icon('check', 13) }}</span>
+      <span class="c-label">Select all permissions</span>
+    </label>
+  </div>
+  {% for grp in permission_groups %}
+  <div class="perm-group" data-perm-group>
+    <div class="perm-group-head">
+      <span class="pg-ico">{{ icon(grp.icon, 17) }}</span>
+      <h4>{{ grp.label }}</h4>
+      <span class="pg-count" data-perm-count>0/{{ grp.permissions|length }}</span>
+      <span class="chev">{{ icon('chevron-down', 16) }}</span>
+    </div>
+    <div class="perm-list">
+      {% for p, label in grp.permissions %}
+      <label class="check">
+        <input type="checkbox" name="permissions" value="{{ p }}" {{ 'checked' if p in selected }}>
+        <span class="box">{{ icon('check', 13) }}</span>
+        <span class="c-label">{{ label }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{% block content %}
+<!-- Summary stats -->
+<div class="grid cols-4 mb-3">
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico">{{ icon('shield', 22) }}</span><span class="s-trend trend-up">Roles</span></div>
+    <div class="s-val" data-count="{{ roles|length }}">0</div>
+    <div class="s-label">Total Roles</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico" style="color:#fcd34d;border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.1)">{{ icon('crown', 22) }}</span><span class="s-trend trend-flat">System</span></div>
+    <div class="s-val" data-count="{{ roles|selectattr('is_system')|list|length }}">0</div>
+    <div class="s-label">Built-in Roles</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico" style="color:#a5b4fc;border-color:rgba(99,102,241,0.3);background:rgba(99,102,241,0.1)">{{ icon('key', 22) }}</span><span class="s-trend trend-flat">Catalog</span></div>
+    <div class="s-val" data-count="{{ permission_groups|map(attribute='permissions')|map('length')|sum }}">0</div>
+    <div class="s-label">Permissions Available</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico" style="color:#7dd3fc;border-color:rgba(56,189,248,0.3);background:rgba(56,189,248,0.1)">{{ icon('users', 22) }}</span><span class="s-trend trend-flat">Assigned</span></div>
+    <div class="s-val" data-count="{{ counts.values()|sum }}">0</div>
+    <div class="s-label">Users With Roles</div>
+  </div>
+</div>
+
+<div class="section-head">
+  <h2>{{ icon('shield', 20) }} Role Library</h2>
+  <div class="spacer"></div>
+  {% if can('roles.manage') %}
+  <button class="btn btn-primary btn-sm" data-modal-open="createRoleModal">{{ icon('plus', 15) }} Create Role</button>
+  {% endif %}
+</div>
+
+<div class="grid auto-lg">
+  {% for r in roles %}
+  <div class="card role-card glow reveal">
+    <span class="rc-stripe" style="background:linear-gradient(90deg,{{ r.color }},transparent)"></span>
+    <div class="rc-top">
+      <span class="rc-ico" style="background:linear-gradient(135deg,{{ r.color }},{{ r.color }}99)">{{ r.name[0]|upper }}</span>
+      <div style="min-width:0;flex:1">
+        <div class="rc-name">{{ r.name }}</div>
+        <div class="flex items-center gap-1" style="margin-top:4px">
+          {% if r.is_system %}<span class="badge primary">{{ icon('lock', 12) }} System</span>{% endif %}
+          <span class="badge">P{{ r.priority }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="rc-desc">{{ r.description or 'No description provided.' }}</div>
+    <div class="rc-count">
+      {{ icon('key', 15) }} <b>{{ r.permissions|length }}</b> permissions
+      <span class="spacer" style="flex:1"></span>
+      {{ icon('users', 15) }} <b>{{ counts.get(r.id, 0) }}</b> users
+    </div>
+    <div class="btn-row" style="margin-top:14px">
+      {% if can('roles.manage') %}
+      <button class="btn btn-sm" data-modal-open="editRole{{ r.id }}">{{ icon('edit-3', 14) }} Edit</button>
+      {% if not r.is_system %}
+      <form method="post" action="{{ url_for('admin.role_delete', rid=r.id) }}" data-confirm="Delete role '{{ r.name }}'? Users on this role will lose access.">
+        <button class="btn btn-sm btn-danger">{{ icon('trash-2', 14) }}</button>
+      </form>
+      {% endif %}
+      {% else %}
+      <span class="badge">{{ icon('eye', 13) }} View only</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card mt-3 reveal" style="background:var(--grad-soft);border-color:rgba(99,102,241,0.25)">
+  <div class="flex items-center gap-2">
+    <span class="s-ico" style="width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc">{{ icon('info', 20) }}</span>
+    <div>
+      <b>How the role system works</b>
+      <div class="muted text-sm">Create a role that can only <b>Create</b>, one that can only <b>Manage</b>, or one with <b>full permissions</b>. Each role's permissions are enforced everywhere in the panel via server-side checks.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Create role modal -->
+{% if can('roles.manage') %}
+<div class="modal-backdrop" id="createRoleModal">
+  <div class="modal wide">
+    <form method="post" action="{{ url_for('admin.role_create') }}">
+      <div class="modal-head">
+        <span class="s-ico" style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--grad-soft);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc">{{ icon('shield', 20) }}</span>
+        <div><h3>Create New Role</h3><div class="card-sub">Name it, pick a colour and tick the permissions to grant</div></div>
+      </div>
+      <div class="modal-body">
+        <div class="grid cols-2">
+          <div class="field">
+            <label>Role Name</label>
+            <input class="input" name="name" placeholder="e.g. Support Agent" required>
+          </div>
+          <div class="field">
+            <label>Accent Colour</label>
+            <input class="input" type="color" name="color" value="#6366f1" style="height:44px;padding:6px">
+          </div>
+        </div>
+        <div class="field">
+          <label>Description</label>
+          <input class="input" name="description" placeholder="What is this role for?">
+        </div>
+        <div class="divider"></div>
+        <label class="text-sm muted" style="display:block;margin-bottom:8px">Permissions</label>
+        {{ perm_matrix([], 'create') }}
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn-primary">{{ icon('check', 16) }} Create Role</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit role modals -->
+{% for r in roles %}
+<div class="modal-backdrop" id="editRole{{ r.id }}">
+  <div class="modal wide">
+    <form method="post" action="{{ url_for('admin.role_edit', rid=r.id) }}">
+      <div class="modal-head">
+        <span class="s-ico" style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,{{ r.color }},{{ r.color }}99);color:#fff;font-weight:800">{{ r.name[0]|upper }}</span>
+        <div><h3>Edit “{{ r.name }}”</h3><div class="card-sub">{{ counts.get(r.id, 0) }} user(s) currently hold this role</div></div>
+      </div>
+      <div class="modal-body">
+        {% if r.slug == 'owner' %}
+        <div class="card mb-2" style="background:rgba(245,158,11,0.08);border-color:rgba(245,158,11,0.3);padding:12px">
+          <div class="flex items-center gap-1 text-sm">{{ icon('crown', 16) }} <span>The <b>Owner</b> role always keeps every permission and cannot be restricted.</span></div>
+        </div>
+        {% endif %}
+        <div class="grid cols-2">
+          <div class="field">
+            <label>Role Name</label>
+            <input class="input" name="name" value="{{ r.name }}" required>
+          </div>
+          <div class="field">
+            <label>Accent Colour</label>
+            <input class="input" type="color" name="color" value="{{ r.color }}" style="height:44px;padding:6px">
+          </div>
+        </div>
+        <div class="field">
+          <label>Description</label>
+          <input class="input" name="description" value="{{ r.description }}">
+        </div>
+        <div class="divider"></div>
+        <label class="text-sm muted" style="display:block;margin-bottom:8px">Permissions</label>
+        {{ perm_matrix(r.permissions, 'edit-' ~ r.id) }}
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn-primary">{{ icon('check', 16) }} Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

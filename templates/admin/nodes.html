@@ -1,0 +1,120 @@
+{% extends "admin/base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}Nodes — {{ settings.site_name }}{% endblock %}
+{% block page_title %}Compute Nodes{% endblock %}
+{% block page_sub %}Scale horizontally by attaching remote LXD hosts{% endblock %}
+
+{% block topbar_actions %}
+{% if can('nodes.manage') %}
+<button class="btn btn-primary btn-sm" data-modal-open="addNodeModal">{{ icon('plus', 15) }} Add Node</button>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+  <span class="chip">{{ icon('cpu', 14) }} LXC {{ lxc_version or 'n/a' }}</span>
+  {% if demo %}<span class="badge warning">{{ icon('info', 13) }} Demo mode — stats simulated</span>{% endif %}
+  <div class="spacer"></div>
+  <span class="badge primary">{{ nodes|length }} node(s)</span>
+</div>
+
+<div class="grid auto-lg">
+  {% for n in nodes %}
+  <div class="card glow reveal">
+    <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center gap-1">
+        <span class="s-ico" style="width:46px;height:46px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(135deg,#6366f1,#22d3ee);color:#fff">{{ icon('cpu', 22) }}</span>
+        <div>
+          <div style="font-size:16px;font-weight:700">{{ n.name }}</div>
+          <div class="muted text-xs mono">{{ n.hostname }}</div>
+        </div>
+      </div>
+      <span class="badge {{ n.status }}"><span class="dot"></span>{{ n.status|capitalize }}</span>
+    </div>
+
+    <div class="metric">
+      <div class="m-head"><b>CPU Load</b><span>{{ '%.1f'|format(n.cpu_usage or 0) }}%</span></div>
+      <div class="progress"><span class="bar" data-pct="{{ n.cpu_usage or 0 }}"></span></div>
+    </div>
+    <div class="metric">
+      <div class="m-head"><b>RAM Usage</b><span>{{ '%.1f'|format(n.ram_usage or 0) }}%</span></div>
+      <div class="progress"><span class="bar" data-pct="{{ n.ram_usage or 0 }}"></span></div>
+    </div>
+
+    <div class="kv"><span class="k">Containers</span><span class="v">{{ n.vps_count }} / {{ n.max_vps }}</span></div>
+    <div class="kv"><span class="k">Type</span><span class="v">{{ 'Local' if n.is_local else 'Remote' }}</span></div>
+    {% if n.node_url %}<div class="kv"><span class="k">Endpoint</span><span class="v mono text-xs">{{ n.node_url }}</span></div>{% endif %}
+
+    {% if can('nodes.manage') %}
+    <div class="btn-row mt-2">
+      <button class="btn btn-sm" data-modal-open="editNode{{ n.id }}">{{ icon('edit-3', 14) }} Edit</button>
+      {% if not n.is_local %}
+      <form method="post" action="{{ url_for('admin.node_delete', nid=n.id) }}" data-confirm="Remove node '{{ n.name }}'?"><button class="btn btn-sm btn-danger">{{ icon('trash-2', 14) }}</button></form>
+      {% else %}
+      <span class="badge">{{ icon('lock', 12) }} Local</span>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="card"><div class="empty" style="padding:50px"><div class="e-ico">{{ icon('cpu', 34) }}</div><h3>No compute nodes</h3><p>Add a local or remote LXD node to start deploying containers.</p></div></div>
+  {% endfor %}
+</div>
+
+<!-- Add node modal -->
+{% if can('nodes.manage') %}
+<div class="modal-backdrop" id="addNodeModal">
+  <div class="modal">
+    <form method="post" action="{{ url_for('admin.node_add') }}">
+      <div class="modal-head">
+        <span class="s-ico" style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--grad-soft);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc">{{ icon('cpu', 20) }}</span>
+        <div><h3>Add Compute Node</h3><div class="card-sub">Register a local or remote LXD host</div></div>
+      </div>
+      <div class="modal-body">
+        <div class="grid cols-2">
+          <div class="field"><label>Node Name</label><input class="input" name="name" placeholder="node-eu-1" required></div>
+          <div class="field"><label>Hostname / IP</label><input class="input" name="hostname" placeholder="10.0.0.12" required></div>
+        </div>
+        <div class="field"><label>Node API URL</label><input class="input" name="node_url" placeholder="https://node.example.com:9000"></div>
+        <div class="field"><label>API Key</label><input class="input" name="api_key" placeholder="Shared secret for the node agent"></div>
+        <label class="check"><input type="checkbox" name="is_local"><span class="box">{{ icon('check', 13) }}</span><span class="c-label">This is the local node</span></label>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn-primary">{{ icon('plus', 16) }} Add Node</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit node modals -->
+{% for n in nodes %}
+<div class="modal-backdrop" id="editNode{{ n.id }}">
+  <div class="modal">
+    <form method="post" action="{{ url_for('admin.node_edit', nid=n.id) }}">
+      <div class="modal-head">
+        <span class="s-ico" style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--grad-soft);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc">{{ icon('cpu', 20) }}</span>
+        <div><h3>Edit “{{ n.name }}”</h3><div class="card-sub">Update connection details</div></div>
+      </div>
+      <div class="modal-body">
+        <div class="grid cols-2">
+          <div class="field"><label>Node Name</label><input class="input" name="name" value="{{ n.name }}" required></div>
+          <div class="field"><label>Hostname / IP</label><input class="input" name="hostname" value="{{ n.hostname }}" required></div>
+        </div>
+        <div class="field"><label>Node API URL</label><input class="input" name="node_url" value="{{ n.node_url }}"></div>
+        <div class="field"><label>API Key</label><input class="input" name="api_key" value="{{ n.api_key }}"></div>
+        <div class="field"><label>Max Containers</label><input class="input" type="number" name="max_vps" value="{{ n.max_vps }}"></div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn-primary">{{ icon('check', 16) }} Save Node</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block sidebar_nav %}
+<div class="nav-group">
+  <div class="nav-label">Administration</div>
+  <a href="{{ url_for('admin.dashboard') }}" class="nav-item {{ 'active' if request.endpoint == 'admin.dashboard' }}">
+    {{ icon('grid') }}<span>Overview</span>
+  </a>
+  {% if can('vps.view') %}
+  <a href="{{ url_for('admin.vps_list') }}" class="nav-item {{ 'active' if request.endpoint and request.endpoint.startswith('admin.vps') }}">
+    {{ icon('server') }}<span>VPS Instances</span>
+  </a>
+  {% endif %}
+  {% if can('users.view') %}
+  <a href="{{ url_for('admin.users') }}" class="nav-item {{ 'active' if request.endpoint and request.endpoint.startswith('admin.user') }}">
+    {{ icon('users') }}<span>Users</span>
+  </a>
+  {% endif %}
+  {% if can('roles.view') %}
+  <a href="{{ url_for('admin.roles') }}" class="nav-item {{ 'active' if request.endpoint and request.endpoint.startswith('admin.role') }}">
+    {{ icon('shield') }}<span>Roles &amp; Permissions</span>
+  </a>
+  {% endif %}
+  {% if can('nodes.view') %}
+  <a href="{{ url_for('admin.nodes') }}" class="nav-item {{ 'active' if request.endpoint and request.endpoint.startswith('admin.node') }}">
+    {{ icon('cpu') }}<span>Nodes</span>
+  </a>
+  {% endif %}
+</div>
+
+<div class="nav-group">
+  <div class="nav-label">System</div>
+  {% if can('settings.view') %}
+  <a href="{{ url_for('admin.settings') }}" class="nav-item {{ 'active' if request.endpoint == 'admin.settings' }}">
+    {{ icon('settings') }}<span>Settings</span>
+  </a>
+  {% endif %}
+  {% if can('logs.view') %}
+  <a href="{{ url_for('admin.logs') }}" class="nav-item {{ 'active' if request.endpoint == 'admin.logs' }}">
+    {{ icon('file-text') }}<span>Logs</span>
+  </a>
+  {% endif %}
+</div>
+
+<div class="nav-group">
+  <div class="nav-label">Panel</div>
+  <a href="{{ url_for('main.dashboard') }}" class="nav-item">
+    {{ icon('arrow-left') }}<span>Back to Panel</span>
+  </a>
+</div>
+{% endblock %}
+
+{% block topbar_actions %}
+<span class="badge primary nowrap">{{ icon('shield-check', 14) }} Admin</span>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

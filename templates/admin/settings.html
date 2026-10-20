@@ -1,0 +1,122 @@
+{% extends "admin/base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}Settings — {{ settings.site_name }}{% endblock %}
+{% block page_title %}Panel Settings{% endblock %}
+{% block page_sub %}Configure branding, resource limits and platform behaviour{% endblock %}
+
+{% block content %}
+<form method="post" action="{{ url_for('admin.settings') }}">
+  <div class="tabs mb-3" data-tabs="settings">
+    <button type="button" class="tab active" data-tab="general">{{ icon('settings', 15) }} General</button>
+    <button type="button" class="tab" data-tab="resources">{{ icon('cpu', 15) }} Resources</button>
+    <button type="button" class="tab" data-tab="network">{{ icon('globe', 15) }} Networking</button>
+    <button type="button" class="tab" data-tab="security">{{ icon('shield', 15) }} Security</button>
+  </div>
+
+  <!-- General -->
+  <div data-panel="general" data-scope="settings">
+    <div class="grid" style="grid-template-columns:1.3fr 1fr;align-items:start">
+      <div class="card reveal">
+        <div class="card-head"><h3>{{ icon('settings', 18) }} Branding</h3></div>
+        <div class="field"><label>Panel Name</label><input class="input" name="site_name" value="{{ settings.site_name }}"></div>
+        <div class="field"><label>Tagline / Description</label><input class="input" name="site_description" value="{{ settings.site_description }}"></div>
+        <div class="field"><label>Footer Text</label><input class="input" name="footer_text" value="{{ settings.footer_text }}"></div>
+        <div class="grid cols-2">
+          <div class="field"><label>Logo URL</label><input class="input" name="logo_url" value="{{ settings.logo_url }}" placeholder="https://…"></div>
+          <div class="field"><label>Favicon URL</label><input class="input" name="favicon_url" value="{{ settings.favicon_url }}" placeholder="https://…"></div>
+        </div>
+        <div class="field"><label>Timezone</label><input class="input" name="timezone" value="{{ settings.timezone }}" placeholder="UTC"></div>
+      </div>
+      <div class="card reveal">
+        <div class="card-head"><h3>{{ icon('eye', 18) }} Live Preview</h3></div>
+        <div class="card" style="background:var(--grad-soft);border-color:rgba(99,102,241,0.25)">
+          <div class="flex items-center gap-1">
+            <span class="brand-logo" style="width:38px;height:38px">{{ icon('cloud', 20) }}</span>
+            <div><b>{{ settings.site_name }}</b><div class="muted text-xs">{{ settings.site_description }}</div></div>
+          </div>
+        </div>
+        <div class="field mt-2">
+          <label>Registration</label>
+          <label class="switch"><input type="checkbox" name="registration_enabled" {{ 'checked' if settings.registration_enabled }}><span class="track"></span></label>
+          <div class="field-hint">Allow new users to self-register from the login page.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resources -->
+  <div data-panel="resources" data-scope="settings" class="hidden">
+    <div class="grid cols-2">
+      <div class="card reveal">
+        <div class="card-head"><h3>{{ icon('cpu', 18) }} Limits &amp; Thresholds</h3></div>
+        <div class="grid cols-2">
+          <div class="field"><label>CPU Alert Threshold (%)</label><input class="input" type="number" name="cpu_threshold" value="{{ settings.cpu_threshold }}"></div>
+          <div class="field"><label>RAM Alert Threshold (%)</label><input class="input" type="number" name="ram_threshold" value="{{ settings.ram_threshold }}"></div>
+        </div>
+        <div class="grid cols-2">
+          <div class="field"><label>Max VPS per User</label><input class="input" type="number" name="max_vps_per_user" value="{{ settings.max_vps_per_user }}"></div>
+          <div class="field"><label>Max Port Forwards per User</label><input class="input" type="number" name="max_ports_per_user" value="{{ settings.max_ports_per_user }}"></div>
+        </div>
+        <div class="field"><label>Default VPS Lifetime (days, 0 = unlimited)</label><input class="input" type="number" name="default_vps_days" value="{{ settings.default_vps_days }}"></div>
+      </div>
+      <div class="card reveal">
+        <div class="card-head"><h3>{{ icon('info', 18) }} Notes</h3></div>
+        <div class="kv"><span class="k">Dedicated RAM</span><span class="v">LXD limits.memory</span></div>
+        <div class="kv"><span class="k">Dedicated CPU</span><span class="v">LXD limits.cpu</span></div>
+        <div class="kv"><span class="k">Dedicated Disk</span><span class="v">LXD root size</span></div>
+        <div class="card mt-2" style="background:var(--grad-soft);border-color:rgba(99,102,241,0.25);padding:13px">
+          <div class="flex items-center gap-1 text-sm">{{ icon('shield-check', 16) }} <span class="muted">Every container gets hard resource caps enforced by the kernel.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Network -->
+  <div data-panel="network" data-scope="settings" class="hidden">
+    <div class="card reveal">
+      <div class="card-head"><h3>{{ icon('globe', 18) }} Networking</h3></div>
+      <div class="grid cols-2">
+        <div class="field"><label>Hostname Prefix</label><input class="input" name="hostname_prefix" value="{{ settings.hostname_prefix }}"><div class="field-hint">Used when generating container names.</div></div>
+        <div class="field"><label>Public IPv4</label><input class="input" name="public_ipv4" value="{{ settings.public_ipv4 }}" placeholder="203.0.113.10"></div>
+      </div>
+      <div class="field">
+        <label>Port Forwarding Method</label>
+        <select class="select" name="port_forwarding_method">
+          <option value="socat" {{ 'selected' if settings.port_forwarding_method=='socat' }}>socat</option>
+          <option value="iptables" {{ 'selected' if settings.port_forwarding_method=='iptables' }}>iptables / NAT</option>
+          <option value="proxy" {{ 'selected' if settings.port_forwarding_method=='proxy' }}>LXD proxy device</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Security -->
+  <div data-panel="security" data-scope="settings" class="hidden">
+    <div class="card reveal">
+      <div class="card-head"><h3>{{ icon('shield', 18) }} Security &amp; Access</h3></div>
+      <div class="grid cols-3">
+        <div class="field"><label>Auth Rate Limit / min</label><input class="input" type="number" name="rate_limit_auth" value="{{ settings.rate_limit_auth }}"></div>
+        <div class="field"><label>API Rate Limit / min</label><input class="input" type="number" name="rate_limit_api" value="{{ settings.rate_limit_api }}"></div>
+        <div class="field"><label>Heavy Ops Rate Limit / min</label><input class="input" type="number" name="rate_limit_heavy" value="{{ settings.rate_limit_heavy }}"></div>
+      </div>
+      <div class="card" style="background:var(--grad-soft);border-color:rgba(99,102,241,0.25);padding:14px">
+        <div class="flex items-center gap-2">
+          <span class="s-ico" style="width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc">{{ icon('lock', 18) }}</span>
+          <div><b class="text-sm">Passwords hashed with PBKDF2-SHA256</b><div class="muted text-xs">240,000 iterations · per-user salt · constant-time verification.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if can('settings.manage') %}
+  <div class="flex gap-1 mt-3">
+    <button type="submit" class="btn btn-primary">{{ icon('check', 16) }} Save Settings</button>
+  </div>
+  {% else %}
+  <div class="card mt-3"><div class="flex items-center gap-1 text-sm">{{ icon('info', 16) }} <span class="muted">You have read-only access to settings.</span></div></div>
+  {% endif %}
+</form>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

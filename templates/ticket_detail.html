@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}{{ ticket.subject }} — Support{% endblock %}
+{% block page_title %}Ticket #{{ ticket.id }}{% endblock %}
+{% block page_sub %}{{ ticket.subject }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('main.tickets') }}" class="btn btn-sm btn-ghost">{{ icon('arrow-left', 15) }} All Tickets</a>
+{% if ticket.status != 'closed' %}
+<form method="post" action="{{ url_for('main.ticket_close', tid=ticket.id) }}" data-confirm="Close this ticket?">
+  <button class="btn btn-sm btn-danger">{{ icon('check-circle', 15) }} Close</button>
+</form>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="grid" style="grid-template-columns:1fr 300px;align-items:start">
+  <div>
+    <div class="card reveal" style="padding:0;overflow:hidden">
+      <div class="card-head" style="padding:18px 22px;border-bottom:1px solid var(--border)">
+        <h3>{{ icon('message-square', 18) }} Conversation</h3>
+        <span class="spacer" style="flex:1"></span>
+        <span class="badge {{ 'success' if ticket.status=='closed' else 'warning' }}"><span class="dot"></span>{{ ticket.status|capitalize }}</span>
+      </div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:16px">
+        {% for r in replies %}
+        <div class="flex gap-1" style="align-items:flex-start;{{ 'flex-direction:row-reverse' if r.is_admin }}">
+          <span class="avatar" style="width:38px;height:38px;flex-shrink:0;{{ 'background:linear-gradient(135deg,#6366f1,#22d3ee)' if r.is_admin }}">{{ r.username[0]|upper }}</span>
+          <div style="max-width:78%;{{ 'text-align:right' if r.is_admin }}">
+            <div class="flex items-center gap-1 text-xs muted" style="{{ 'justify-content:flex-end' if r.is_admin }}">
+              <b style="color:var(--text-dim)">{{ r.username }}</b>
+              {% if r.is_admin %}<span class="badge primary">{{ icon('shield-check', 11) }} Staff</span>{% endif %}
+              <span>{{ r.created_at|dt('%b %d, %H:%M') }}</span>
+            </div>
+            <div class="card" style="margin-top:6px;padding:13px 16px;{{ 'background:var(--grad-soft);border-color:rgba(99,102,241,0.3)' if r.is_admin }}">
+              <div class="text-sm" style="white-space:pre-wrap">{{ r.message }}</div>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="muted text-sm" style="text-align:center;padding:20px">No messages yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if ticket.status != 'closed' %}
+    <div class="card reveal mt-3">
+      <form method="post" action="{{ url_for('main.ticket_reply', tid=ticket.id) }}">
+        <div class="field mb-1">
+          <label>Your Reply</label>
+          <textarea class="input" name="message" rows="4" placeholder="Type your response…" required></textarea>
+        </div>
+        <button class="btn btn-primary">{{ icon('send', 16) }} Send Reply</button>
+      </form>
+    </div>
+    {% else %}
+    <div class="card mt-3"><div class="flex items-center gap-1 text-sm">{{ icon('lock', 16) }} <span class="muted">This ticket is closed. Open a new ticket if you need further help.</span></div></div>
+    {% endif %}
+  </div>
+
+  <aside>
+    <div class="card reveal">
+      <div class="card-head"><h3>{{ icon('info', 18) }} Ticket Info</h3></div>
+      <div class="kv"><span class="k">Ticket</span><span class="v">#{{ ticket.id }}</span></div>
+      <div class="kv"><span class="k">Subject</span><span class="v">{{ ticket.subject }}</span></div>
+      <div class="kv"><span class="k">Opened by</span><span class="v">{{ ticket.username }}</span></div>
+      <div class="kv"><span class="k">Created</span><span class="v">{{ ticket.created_at|dt('%Y-%m-%d %H:%M') }}</span></div>
+      <div class="kv"><span class="k">Updated</span><span class="v">{{ ticket.updated_at|dt('%Y-%m-%d %H:%M') }}</span></div>
+      <div class="kv"><span class="k">Replies</span><span class="v">{{ replies|length }}</span></div>
+      <div class="kv"><span class="k">Status</span><span class="v">{{ ticket.status|capitalize }}</span></div>
+    </div>
+  </aside>
+</div>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

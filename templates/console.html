@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}Console — {{ vps.container_name }}{% endblock %}
+{% block page_title %}Direct Console{% endblock %}
+{% block page_sub %}{{ vps.container_name }} · interactive terminal{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
+{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('main.vps_detail', vps_id=vps.id) }}" class="btn btn-sm btn-ghost">{{ icon('arrow-left', 15) }} Back</a>
+{% endblock %}
+
+{% block content %}
+<div class="console-grid">
+  <aside class="console-side">
+    <div class="card reveal">
+      <div class="card-head"><span class="ic">{{ icon('server', 18) }}</span><h3>{{ vps.container_name }}</h3></div>
+      <div class="kv"><span class="k">Status</span><span class="v"><span class="badge {{ vps.status }}"><span class="dot"></span>{{ vps.status|capitalize }}</span></span></div>
+      <div class="kv"><span class="k">OS</span><span class="v">{{ vps.os_type }}</span></div>
+      <div class="kv"><span class="k">CPU</span><span class="v">{{ vps.cpu }} vCPU</span></div>
+      <div class="kv"><span class="k">RAM</span><span class="v">{{ vps.ram }}</span></div>
+      <div class="kv"><span class="k">Disk</span><span class="v">{{ vps.disk }}</span></div>
+    </div>
+    <div class="card reveal">
+      <div class="card-head"><span class="ic">{{ icon('zap', 18) }}</span><h3>Quick Commands</h3></div>
+      <div class="grid" style="gap:8px">
+        <button class="btn btn-sm btn-block" data-cmd="ls -la">List files</button>
+        <button class="btn btn-sm btn-block" data-cmd="df -h">Disk usage</button>
+        <button class="btn btn-sm btn-block" data-cmd="free -h">Memory usage</button>
+        <button class="btn btn-sm btn-block" data-cmd="top -bn1 | head -20">Top processes</button>
+        <button class="btn btn-sm btn-block" data-cmd="ip addr">Network info</button>
+      </div>
+    </div>
+  </aside>
+
+  <div>
+    <div class="term-shell reveal">
+      <div class="term-bar">
+        <div class="term-dots"><i></i><i></i><i></i></div>
+        <span class="term-title">root@{{ vps.container_name }} — bash</span>
+        <button class="btn btn-xs" id="reconnectBtn">{{ icon('refresh-cw', 13) }} Reconnect</button>
+      </div>
+      <div class="term-body" id="termBody"></div>
+      <div class="term-status">
+        <span class="badge {{ 'success' if not demo else 'warning' }}" id="connBadge"><span class="dot"></span><span id="connText">{{ 'Demo shell' if demo else 'Connecting…' }}</span></span>
+        <span class="muted" id="cursorInfo"></span>
+        <div style="flex:1"></div>
+        <span class="muted text-xs">Click the terminal and start typing</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+<script>
+(function(){
+  const vid = {{ vps.id }};
+  const $ = (id) => document.getElementById(id);
+  const body = $('termBody');
+
+  if(!window.Terminal){
+    body.innerHTML = '<div style="padding:24px;color:#fca5a5">Failed to load terminal library. Check your connection and reload.</div>';
+    return;
+  }
+
+  const term = new Terminal({
+    cursorBlink: true,
+    fontSize: 14,
+    fontFamily: "'JetBrains Mono','Fira Code',monospace",
+    theme: {
+      background: '#05070d', foreground: '#e9eefb', cursor: '#22d3ee',
+      selectionBackground: 'rgba(99,102,241,0.4)',
+      black:'#0b1120', red:'#ef4444', green:'#22c55e', yellow:'#f59e0b',
+      blue:'#6366f1', magenta:'#8b5cf6', cyan:'#22d3ee', white:'#e9eefb',
+      brightBlack:'#66748f', brightRed:'#fca5a5', brightGreen:'#86efac',
+      brightYellow:'#fcd34d', brightBlue:'#a5b4fc', brightMagenta:'#c084fc',
+      brightCyan:'#67e8f9', brightWhite:'#ffffff'
+    }
+  });
+  const fit = window.FitAddon ? new FitAddon.FitAddon() : null;
+  if(fit) term.loadAddon(fit);
+  term.open(body);
+  try { fit && fit.fit(); } catch(e){}
+  term.writeln('\x1b[1;36mCryzonCloud Cpanel\x1b[0m — Direct Console');
+  term.writeln('Connecting to container \x1b[1m' + {{ vps.container_name|tojson }} + '\x1b[0m ...\r\n');
+
+  let sessionId = null, cursor = 0, pollTimer = null, closed = false;
+
+  async function post(path, data){
+    const r = await fetch('/api/vps/'+vid+'/terminal/'+path, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data||{})
+    });
+    return r.ok ? r.json() : null;
+  }
+
+  async function open(){
+    closed = false;
+    const dims = { rows: term.rows, cols: term.cols };
+    const res = await post('open', dims);
+    if(!res || !res.session_id){
+      setStatus('danger','Failed to open shell');
+      term.writeln('\x1b[1;31mCould not open a terminal session.\x1b[0m');
+      return;
+    }
+    sessionId = res.session_id; cursor = 0;
+    setStatus('success','Connected');
+    poll();
+  }
+
+  function setStatus(kind, text){
+    const b = $('connBadge');
+    b.className = 'badge ' + (kind==='success'?'success':kind==='danger'?'danger':'warning');
+    $('connText').textContent = text;
+  }
+
+  async function poll(){
+    if(closed || !sessionId) return;
+    try{
+      const r = await fetch('/api/vps/'+vid+'/terminal/read?session_id='+encodeURIComponent(sessionId)+'&cursor='+cursor);
+      if(r.ok){
+        const d = await r.json();
+        if(d.data) term.write(d.data);
+        cursor = d.cursor;
+        $('cursorInfo').textContent = 'buffer ' + cursor + ' B';
+        if(d.alive === false && !d.data){ /* keep polling briefly */ }
+      }
+    }catch(e){}
+    pollTimer = setTimeout(poll, 120);
+  }
+
+  term.onData(function(data){ if(sessionId) post('input', { session_id: sessionId, data: data }); });
+  term.onResize(function(size){ if(sessionId) post('resize', { session_id: sessionId, rows: size.rows, cols: size.cols }); });
+
+  window.addEventListener('resize', function(){ try{ fit && fit.fit(); }catch(e){} });
+
+  document.querySelectorAll('[data-cmd]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      if(sessionId) post('input', { session_id: sessionId, data: btn.dataset.cmd + '\r' });
+      term.focus();
+    });
+  });
+
+  $('reconnectBtn').addEventListener('click', async function(){
+    if(sessionId){ try{ await post('close', { session_id: sessionId }); }catch(e){} }
+    clearTimeout(pollTimer); term.reset();
+    term.writeln('\x1b[1;36mReconnecting...\x1b[0m\r\n');
+    await open();
+  });
+
+  open();
+  setTimeout(function(){ term.focus(); }, 400);
+})();
+</script>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

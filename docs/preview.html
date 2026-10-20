@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CryzonCloud Cpanel — UI Preview</title>
+<style>
+  :root{
+    --bg:#070a14; --bg2:#0c1122; --card:#111731; --line:rgba(255,255,255,.08);
+    --txt:#e8ecf8; --muted:#93a0c4; --p:#7c5cff; --p2:#a78bfa; --c:#22d3ee; --g:#34d399;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    background:radial-gradient(1200px 700px at 15% -10%,rgba(124,92,255,.20),transparent 55%),
+               radial-gradient(1000px 700px at 95% 0%,rgba(34,211,238,.14),transparent 55%),
+               var(--bg);
+    color:var(--txt); line-height:1.6; min-height:100vh; padding:0 0 80px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px}
+  header{padding:64px 0 40px;text-align:center;position:relative}
+  .badge{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--c);border:1px solid rgba(34,211,238,.35);
+    background:rgba(34,211,238,.07);padding:7px 15px;border-radius:999px;font-weight:600}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--g);box-shadow:0 0 12px var(--g);
+    animation:pulse 1.8s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.75)}}
+  h1{font-size:clamp(34px,6vw,58px);font-weight:800;letter-spacing:-.02em;margin:22px 0 12px;
+    background:linear-gradient(100deg,#fff 10%,var(--p2) 55%,var(--c) 95%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{color:var(--muted);font-size:clamp(15px,2.2vw,19px);max-width:680px;margin:0 auto}
+  .chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:28px}
+  .chip{font-size:13px;color:var(--txt);background:var(--card);border:1px solid var(--line);
+    padding:8px 14px;border-radius:999px;display:flex;align-items:center;gap:7px}
+  .chip b{color:var(--p2)}
+  h2{font-size:22px;margin:56px 0 6px;display:flex;align-items:center;gap:12px}
+  h2::before{content:"";width:5px;height:24px;border-radius:3px;
+    background:linear-gradient(var(--p),var(--c))}
+  .sec-sub{color:var(--muted);font-size:14px;margin-bottom:22px}
+  .grid{display:grid;gap:22px;grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}
+  .shot{background:linear-gradient(180deg,var(--card),var(--bg2));border:1px solid var(--line);
+    border-radius:16px;overflow:hidden;transition:.35s cubic-bezier(.2,.7,.3,1);
+    box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  .shot:hover{transform:translateY(-6px);border-color:rgba(124,92,255,.55);
+    box-shadow:0 22px 50px rgba(124,92,255,.28)}
+  .shot img{width:100%;display:block;border-bottom:1px solid var(--line);cursor:zoom-in}
+  .shot .cap{padding:15px 18px}
+  .shot .cap h3{font-size:15px;margin-bottom:4px}
+  .shot .cap p{font-size:13px;color:var(--muted)}
+  .wide{grid-column:1/-1}
+  .wide img{max-height:640px;object-fit:cover;object-position:top}
+  footer{text-align:center;color:var(--muted);font-size:13px;margin-top:70px}
+  .lb{position:fixed;inset:0;background:rgba(4,6,14,.94);display:none;align-items:center;
+    justify-content:center;z-index:99;padding:24px;cursor:zoom-out}
+  .lb img{max-width:100%;max-height:100%;border-radius:12px;border:1px solid var(--line)}
+  .lb.on{display:flex}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="badge"><span class="dot"></span> All systems operational</span>
+    <h1>CryzonCloud Cpanel</h1>
+    <p class="sub">A modern, self-hosted VPS control panel on LXC/LXD — dedicated RAM, disk and CPU cores, a direct web console, and a full role-based admin panel.</p>
+    <div class="chips">
+      <span class="chip"><b>LXC/LXD</b> containers</span>
+      <span class="chip"><b>Dedicated</b> RAM · ROM · Cores</span>
+      <span class="chip"><b>Direct</b> web console</span>
+      <span class="chip"><b>Roles</b> & permissions</span>
+      <span class="chip"><b>Multi-node</b> fleet</span>
+      <span class="chip"><b>Glassmorphic</b> UI</span>
+    </div>
+  </header>
+
+  <h2>Authentication & Landing</h2>
+  <p class="sec-sub">A split-screen glassmorphic sign-in with animated gradient orbs.</p>
+  <div class="grid">
+    <div class="shot wide"><img src="screenshots/01-login.png" alt="Login"><div class="cap"><h3>Sign in</h3><p>Split hero + credential card, live status pill and feature highlights.</p></div></div>
+  </div>
+
+  <h2>User Dashboard</h2>
+  <p class="sec-sub">At-a-glance stats, animated counters and container cards.</p>
+  <div class="grid">
+    <div class="shot wide"><img src="screenshots/02-dashboard.png" alt="Dashboard"><div class="cap"><h3>Dashboard</h3><p>Total / running / idle / shared counters with reveal-on-scroll container cards.</p></div></div>
+  </div>
+
+  <h2>Admin Panel</h2>
+  <p class="sec-sub">A dedicated administration area with its own navigation.</p>
+  <div class="grid">
+    <div class="shot wide"><img src="screenshots/03-admin-overview.png" alt="Admin overview"><div class="cap"><h3>Overview</h3><p>Eight KPI cards, recent deployments, live system logs and node health.</p></div></div>
+    <div class="shot wide"><img src="screenshots/06-admin-vps.png" alt="Admin VPS"><div class="cap"><h3>VPS Instances</h3><p>Fleet-wide table with owner, node, specs and status, plus instant search & filter.</p></div></div>
+  </div>
+
+  <h2>Roles & Permissions <span style="font-size:13px;color:var(--c);font-weight:600">— key feature</span></h2>
+  <p class="sec-sub">Build custom roles (Owner, Admin, Staff, or your own) and grant granular permissions — create-only, manage-only, or full access.</p>
+  <div class="grid">
+    <div class="shot"><img src="screenshots/04-roles.png" alt="Roles"><div class="cap"><h3>Role library</h3><p>Color-coded role cards with priority, permission counts and user counts.</p></div></div>
+    <div class="shot"><img src="screenshots/05-permission-matrix.png" alt="Permission matrix"><div class="cap"><h3>Permission matrix</h3><p>27 permissions across 7 groups, per-group live counters and select-all.</p></div></div>
+  </div>
+
+  <h2>Direct Web Console</h2>
+  <p class="sec-sub">An interactive terminal straight into the container — no SSH client needed.</p>
+  <div class="grid">
+    <div class="shot wide"><img src="screenshots/08-console.png" alt="Console"><div class="cap"><h3>Console</h3><p>Server-side PTY + xterm.js, quick commands, reconnect and live connection state.</p></div></div>
+  </div>
+
+  <h2>Container Detail & Resources</h2>
+  <p class="sec-sub">Live resource monitoring and full lifecycle control.</p>
+  <div class="grid">
+    <div class="shot wide"><img src="screenshots/07-vps-detail.png" alt="VPS detail"><div class="cap"><h3>VPS detail</h3><p>Live CPU / memory / disk, edit RAM · CPU · ROM · OS · node, connection info and transfer.</p></div></div>
+  </div>
+
+  <h2>Users, Nodes & Settings</h2>
+  <p class="sec-sub">Manage accounts, scale horizontally, and configure the platform.</p>
+  <div class="grid">
+    <div class="shot"><img src="screenshots/09-users.png" alt="Users"><div class="cap"><h3>Users</h3><p>Inline role assignment, ban/unban, search and protected owner account.</p></div></div>
+    <div class="shot"><img src="screenshots/10-nodes.png" alt="Nodes"><div class="cap"><h3>Compute nodes</h3><p>Attach remote LXD hosts with live CPU / RAM / container load.</p></div></div>
+    <div class="shot"><img src="screenshots/11-settings.png" alt="Settings"><div class="cap"><h3>Settings</h3><p>Tabbed branding, resources, networking and security — with live preview.</p></div></div>
+    <div class="shot"><img src="screenshots/12-tickets.png" alt="Tickets"><div class="cap"><h3>Support</h3><p>Threaded ticket system with stats and a new-ticket modal.</p></div></div>
+    <div class="shot wide"><img src="screenshots/13-profile.png" alt="Profile"><div class="cap"><h3>Profile</h3><p>Account, personal API key, a visual permissions grid and recent activity.</p></div></div>
+  </div>
+
+  <footer>
+    CryzonCloud Cpanel — enhanced build · login <b style="color:var(--p2)">admin / admin123</b><br>
+    Click any screenshot to enlarge.
+  </footer>
+</div>
+<div class="lb" id="lb"><img id="lbimg" src="" alt=""></div>
+<script>
+  const lb=document.getElementById('lb'),lbimg=document.getElementById('lbimg');
+  document.querySelectorAll('.shot img').forEach(i=>i.addEventListener('click',()=>{lbimg.src=i.src;lb.classList.add('on')}));
+  lb.addEventListener('click',()=>lb.classList.remove('on'));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')lb.classList.remove('on')});
+</script>
+</body>
+</html>

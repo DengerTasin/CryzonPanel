@@ -1,0 +1,173 @@
+{% extends "admin/base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}VPS Instances — {{ settings.site_name }}{% endblock %}
+{% block page_title %}VPS Instances{% endblock %}
+{% block page_sub %}Provision, manage and monitor every container across the fleet{% endblock %}
+
+{% block topbar_actions %}
+{% if can('vps.create') %}
+<button class="btn btn-primary btn-sm" data-modal-open="provisionModal">{{ icon('plus', 15) }} Provision VPS</button>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="grid cols-4 mb-3">
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico">{{ icon('server', 22) }}</span></div>
+    <div class="s-val" data-count="{{ vps_list|length }}">0</div>
+    <div class="s-label">Total Containers</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico" style="color:#86efac;border-color:rgba(34,197,94,0.3);background:rgba(34,197,94,0.1)">{{ icon('play', 22) }}</span></div>
+    <div class="s-val" data-count="{{ vps_list|selectattr('status','equalto','running')|list|length }}">0</div>
+    <div class="s-label">Running</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico" style="color:#cbd5e1;border-color:rgba(148,163,184,0.3);background:rgba(148,163,184,0.1)">{{ icon('square', 20) }}</span></div>
+    <div class="s-val" data-count="{{ vps_list|selectattr('status','equalto','stopped')|list|length }}">0</div>
+    <div class="s-label">Stopped</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico" style="color:#fca5a5;border-color:rgba(239,68,68,0.3);background:rgba(239,68,68,0.1)">{{ icon('alert-triangle', 20) }}</span></div>
+    <div class="s-val" data-count="{{ vps_list|selectattr('status','equalto','error')|list|length }}">0</div>
+    <div class="s-label">Errored</div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <div class="search-box">
+    <span class="ic">{{ icon('search', 15) }}</span>
+    <input class="input" id="vpsSearch" placeholder="Search container, owner or node…" onkeyup="filterVps()">
+  </div>
+  <select class="select" id="vpsStatusFilter" onchange="filterVps()" style="max-width:180px">
+    <option value="">All statuses</option>
+    <option value="running">Running</option>
+    <option value="stopped">Stopped</option>
+    <option value="creating">Creating</option>
+    <option value="error">Error</option>
+  </select>
+  <div class="spacer"></div>
+  {% if can('vps.create') %}
+  <button class="btn btn-primary btn-sm" data-modal-open="provisionModal">{{ icon('plus', 15) }} New Container</button>
+  {% endif %}
+</div>
+
+<div class="card reveal" style="padding:0;overflow:hidden">
+  <div class="table-wrap" style="border:none;border-radius:0">
+    <table class="data" id="vpsTable">
+      <thead>
+        <tr><th>Container</th><th>Owner</th><th>Node</th><th>Specs</th><th>Status</th><th>Created</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for v in vps_list %}
+        <tr data-search="{{ (v.container_name ~ ' ' ~ v.username ~ ' ' ~ (v.node_name or ''))|lower }}" data-status="{{ v.status }}">
+          <td>
+            <div class="flex items-center gap-1">
+              <span class="s-ico" style="width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--grad-soft);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc">{{ icon('server', 16) }}</span>
+              <div><div class="mono text-sm" style="font-weight:650">{{ v.container_name }}</div><div class="muted text-xs">{{ v.os_type }}</div></div>
+            </div>
+          </td>
+          <td><span class="flex items-center gap-1 text-sm">{{ icon('user', 14) }} {{ v.username }}</span></td>
+          <td class="muted text-sm">{{ v.node_name or 'local' }}</td>
+          <td>
+            <div class="flex gap-1" style="flex-wrap:wrap">
+              <span class="spec-chip">{{ icon('cpu', 12) }} {{ v.cpu }}</span>
+              <span class="spec-chip">{{ icon('hard-drive', 12) }} {{ v.ram }}</span>
+              <span class="spec-chip">{{ icon('database', 12) }} {{ v.disk }}</span>
+            </div>
+          </td>
+          <td><span class="badge {{ v.status }}"><span class="dot"></span>{{ v.status|capitalize }}</span></td>
+          <td class="muted text-xs nowrap">{{ v.created_at[:10] if v.created_at else '—' }}</td>
+          <td>
+            <div class="flex gap-1">
+              <a href="{{ url_for('admin.vps_detail', vps_id=v.id) }}" class="btn btn-xs">{{ icon('eye', 13) }} Manage</a>
+            </div>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7"><div class="empty" style="padding:44px"><div class="e-ico">{{ icon('server', 30) }}</div><h3>No containers provisioned</h3><p>Use “Provision VPS” to deploy the first container to the fleet.</p></div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Provision modal -->
+{% if can('vps.create') %}
+<div class="modal-backdrop" id="provisionModal">
+  <div class="modal">
+    <form method="post" action="{{ url_for('admin.vps_create') }}">
+      <div class="modal-head">
+        <span class="s-ico" style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--grad-soft);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc">{{ icon('rocket', 20) }}</span>
+        <div><h3>Provision New Container</h3><div class="card-sub">Deploy an LXD container with dedicated resources</div></div>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label>Assign to User</label>
+          <select class="select" name="user_id">
+            {% for u in users %}<option value="{{ u.id }}">{{ u.username }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>Operating System</label>
+          <select class="select" name="os_type">
+            {% for os in os_options %}<option value="{{ os.value }}">{{ os.label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="grid cols-3">
+          <div class="field">
+            <label>RAM</label>
+            <select class="select" name="ram">{% for r in ram_options %}<option value="{{ r }}" {{ 'selected' if r=='2GB' }}>{{ r }}</option>{% endfor %}</select>
+          </div>
+          <div class="field">
+            <label>CPU Cores</label>
+            <select class="select" name="cpu">{% for c in cpu_options %}<option value="{{ c }}">{{ c }} vCPU</option>{% endfor %}</select>
+          </div>
+          <div class="field">
+            <label>Disk (ROM)</label>
+            <select class="select" name="disk">{% for d in disk_options %}<option value="{{ d }}" {{ 'selected' if d=='20GB' }}>{{ d }}</option>{% endfor %}</select>
+          </div>
+        </div>
+        <div class="grid cols-2">
+          <div class="field">
+            <label>Node</label>
+            <select class="select" name="node_id">
+              <option value="">Auto (local)</option>
+              {% for n in nodes %}<option value="{{ n.id }}">{{ n.name }} — {{ n.hostname }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label>Expiry (days, 0 = never)</label>
+            <input class="input" type="number" name="days" value="0" min="0">
+          </div>
+        </div>
+        <div class="card" style="background:var(--grad-soft);border-color:rgba(99,102,241,0.25);padding:13px">
+          <div class="flex items-center gap-1 text-sm">{{ icon('info', 16) }} <span class="muted">Resources are hard-limited per container through LXD.</span></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn-primary">{{ icon('rocket', 16) }} Deploy</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterVps() {
+  const q = document.getElementById('vpsSearch').value.toLowerCase().trim();
+  const st = document.getElementById('vpsStatusFilter').value;
+  document.querySelectorAll('#vpsTable tbody tr[data-search]').forEach(function (tr) {
+    const matchQ = !q || tr.dataset.search.indexOf(q) !== -1;
+    const matchS = !st || tr.dataset.status === st;
+    tr.style.display = (matchQ && matchS) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

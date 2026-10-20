@@ -1,0 +1,118 @@
+{% extends "admin/base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}Users — {{ settings.site_name }}{% endblock %}
+{% block page_title %}User Management{% endblock %}
+{% block page_sub %}Assign roles, moderate accounts and audit the user base{% endblock %}
+
+{% block content %}
+<div class="grid cols-4 mb-3">
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico">{{ icon('users', 22) }}</span></div>
+    <div class="s-val" data-count="{{ users|length }}">0</div>
+    <div class="s-label">Total Users</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico" style="color:#86efac;border-color:rgba(34,197,94,0.3);background:rgba(34,197,94,0.1)">{{ icon('check-circle', 22) }}</span></div>
+    <div class="s-val" data-count="{{ users|rejectattr('is_banned')|list|length }}">0</div>
+    <div class="s-label">Active</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico" style="color:#fca5a5;border-color:rgba(239,68,68,0.3);background:rgba(239,68,68,0.1)">{{ icon('lock', 20) }}</span></div>
+    <div class="s-val" data-count="{{ users|selectattr('is_banned')|list|length }}">0</div>
+    <div class="s-label">Suspended</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico" style="color:#a5b4fc;border-color:rgba(99,102,241,0.3);background:rgba(99,102,241,0.1)">{{ icon('shield', 22) }}</span></div>
+    <div class="s-val" data-count="{{ roles|length }}">0</div>
+    <div class="s-label">Available Roles</div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <div class="search-box">
+    <span class="ic">{{ icon('search', 15) }}</span>
+    <input class="input" id="userSearch" placeholder="Search username or email…" onkeyup="filterUsers()">
+  </div>
+  <div class="spacer"></div>
+  <a href="{{ url_for('admin.roles') }}" class="btn btn-sm">{{ icon('shield', 14) }} Manage Roles</a>
+</div>
+
+<div class="card reveal" style="padding:0;overflow:hidden">
+  <div class="table-wrap" style="border:none;border-radius:0">
+    <table class="data" id="userTable">
+      <thead>
+        <tr><th>User</th><th>Email</th><th>Role</th><th>VPS</th><th>Status</th><th>Joined</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+      {% for u in users %}
+        <tr data-search="{{ (u.username ~ ' ' ~ (u.email or ''))|lower }}">
+          <td>
+            <div class="flex items-center gap-1">
+              <span class="avatar" style="width:36px;height:36px;font-size:14px">{{ u.username[0]|upper }}</span>
+              <div>
+                <div style="font-weight:650">{{ u.username }}</div>
+                {% if u.id == 1 %}<span class="badge warning">{{ icon('crown', 11) }} Owner</span>{% endif %}
+              </div>
+            </div>
+          </td>
+          <td class="muted text-sm">{{ u.email }}</td>
+          <td>
+            {% if can('users.manage') and u.id != 1 %}
+            <form method="post" action="{{ url_for('admin.user_set_role', uid=u.id) }}">
+              <select class="select" name="role_id" onchange="this.form.submit()" style="min-width:130px">
+                {% for r in roles %}<option value="{{ r.id }}" {{ 'selected' if u.role_id==r.id }}>{{ r.name }}</option>{% endfor %}
+              </select>
+            </form>
+            {% else %}
+            <span class="role-pill" style="border-color:{{ u.role_color or '#64748b' }}40;background:{{ u.role_color or '#64748b' }}1a;color:{{ u.role_color or '#94a3b8' }}">
+              <span class="rdot" style="background:{{ u.role_color or '#64748b' }}"></span>{{ u.role_name or 'None' }}
+            </span>
+            {% endif %}
+          </td>
+          <td><span class="badge">{{ u.vps_count }}</span></td>
+          <td>
+            {% if u.is_banned %}<span class="badge danger"><span class="dot"></span>Suspended</span>
+            {% else %}<span class="badge success"><span class="dot"></span>Active</span>{% endif %}
+          </td>
+          <td class="muted text-xs nowrap">{{ u.created_at[:10] if u.created_at else '—' }}</td>
+          <td>
+            {% if u.id != 1 %}
+            <div class="flex gap-1">
+              {% if can('users.ban') %}
+              {% if u.is_banned %}
+              <form method="post" action="{{ url_for('admin.user_unban', uid=u.id) }}"><button class="btn btn-xs btn-success" title="Unban">{{ icon('unlock', 13) }}</button></form>
+              {% else %}
+              <form method="post" action="{{ url_for('admin.user_ban', uid=u.id) }}" data-confirm="Suspend {{ u.username }}?"><button class="btn btn-xs btn-warning" title="Ban">{{ icon('lock', 13) }}</button></form>
+              {% endif %}
+              {% endif %}
+              {% if can('users.manage') %}
+              <form method="post" action="{{ url_for('admin.user_delete', uid=u.id) }}" data-confirm="Delete {{ u.username }} permanently?"><button class="btn btn-xs btn-danger" title="Delete">{{ icon('trash-2', 13) }}</button></form>
+              {% endif %}
+            </div>
+            {% else %}
+            <span class="muted text-xs">Protected</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7"><div class="empty" style="padding:44px"><div class="e-ico">{{ icon('users', 30) }}</div><h3>No users yet</h3><p>Registered accounts will appear here.</p></div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterUsers() {
+  const q = document.getElementById('userSearch').value.toLowerCase().trim();
+  document.querySelectorAll('#userTable tbody tr[data-search]').forEach(function (tr) {
+    tr.style.display = (!q || tr.dataset.search.indexOf(q) !== -1) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

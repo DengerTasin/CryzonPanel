@@ -1,0 +1,113 @@
+{% from "_icons.html" import icon %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ settings.site_name or 'CryzonCloud Cpanel' }} — Cloud VPS Management</title>
+  <meta name="description" content="{{ settings.site_description }}">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%2322d3ee'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='24' height='24' rx='6' fill='url(%23g)'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+  <div class="bg-fx"><span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span></div>
+
+  <div class="landing">
+    <nav class="land-nav">
+      <a href="{{ url_for('main.index') }}" class="brand" style="padding:0">
+        <span class="brand-logo">{{ icon('cloud', 22) }}</span>
+        <span class="brand-name">{{ settings.site_name or 'CryzonCloud' }}<span>Cpanel v3</span></span>
+      </a>
+      <div class="links">
+        <a href="#features">Features</a>
+        <a href="#platform">Platform</a>
+        <a href="#stack">Technology</a>
+      </div>
+      <div style="flex:1"></div>
+      <a href="{{ url_for('main.login') }}" class="btn btn-ghost btn-sm">Sign in</a>
+      {% if settings.registration_enabled %}
+      <a href="{{ url_for('main.register') }}" class="btn btn-primary btn-sm">{{ icon('rocket', 15) }} Get Started</a>
+      {% endif %}
+    </nav>
+
+    <header class="hero">
+      <div class="tag"><span class="pulse-dot"></span> Powered by LXC / LXD Containers</div>
+      <h1>Deploy <span class="gradient-text">cloud containers</span><br>in seconds, not hours</h1>
+      <p class="lead">CryzonCloud Cpanel is a modern control panel for provisioning and managing LXD containers with dedicated RAM, disk and CPU cores — plus a built-in web console, file manager, backups and a full role-based admin panel.</p>
+      <div class="cta">
+        <a href="{{ url_for('main.login') }}" class="btn btn-primary btn-lg">{{ icon('terminal', 18) }} Open Console</a>
+        {% if settings.registration_enabled %}
+        <a href="{{ url_for('main.register') }}" class="btn btn-lg">{{ icon('user-plus', 18) }} Create Account</a>
+        {% endif %}
+      </div>
+
+      <div class="hero-stats">
+        <div class="hs"><b class="gradient-text" data-count="{{ stats.vps }}">0</b><span>Containers Deployed</span></div>
+        <div class="hs"><b class="gradient-text" data-count="{{ stats.users }}">0</b><span>Active Users</span></div>
+        <div class="hs"><b class="gradient-text" data-count="{{ stats.nodes }}">0</b><span>Compute Nodes</span></div>
+        <div class="hs"><b class="gradient-text" data-count="99.9">0</b><span>% Uptime</span></div>
+      </div>
+    </header>
+
+    <section class="features" id="features">
+      <div class="section-title">
+        <h2>Everything you need to run <span class="gradient-text">cloud infrastructure</span></h2>
+        <p>A complete, production-ready control panel built for speed, reliability and beautiful simplicity.</p>
+      </div>
+      <div class="grid cols-3">
+        <div class="feature reveal">
+          <div class="f-ico">{{ icon('server', 26) }}</div>
+          <h3>LXC / LXD Containers</h3>
+          <p>Provision lightweight system containers with dedicated RAM, disk (ROM) and CPU core allocation for true resource isolation.</p>
+        </div>
+        <div class="feature reveal">
+          <div class="f-ico">{{ icon('terminal', 26) }}</div>
+          <h3>Direct Web Console</h3>
+          <p>Access your container's terminal directly from the browser with a full pseudo-terminal — no SSH client required.</p>
+        </div>
+        <div class="feature reveal">
+          <div class="f-ico">{{ icon('shield-check', 26) }}</div>
+          <h3>Roles &amp; Permissions</h3>
+          <p>Build custom roles like Owner, Admin and Staff with granular permissions — create-only, manage-only or full access.</p>
+        </div>
+        <div class="feature reveal">
+          <div class="f-ico">{{ icon('folder', 26) }}</div>
+          <h3>File &amp; Process Manager</h3>
+          <p>Browse the filesystem and monitor running processes inside any container straight from the dashboard.</p>
+        </div>
+        <div class="feature reveal">
+          <div class="f-ico">{{ icon('layers', 26) }}</div>
+          <h3>Snapshots &amp; Backups</h3>
+          <p>Create point-in-time backups of any container and restore them instantly when you need to roll back.</p>
+        </div>
+        <div class="feature reveal">
+          <div class="f-ico">{{ icon('cpu', 26) }}</div>
+          <h3>Multi-Node Scaling</h3>
+          <p>Register remote worker nodes and distribute containers across your fleet with a single control plane.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="features" id="platform" style="padding-top:0">
+      <div class="card glow" style="padding:48px;text-align:center;background:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(34,211,238,0.06))">
+        <h2 style="font-size:clamp(26px,4vw,38px);margin-bottom:14px">A <span class="gradient-text">dedicated admin panel</span> for every team</h2>
+        <p class="muted" style="max-width:640px;margin:0 auto 28px;font-size:16px">Assign roles, control exactly what each team member can do, and keep full visibility with system logs and activity tracking.</p>
+        <div class="btn-row" style="justify-content:center">
+          <a href="{{ url_for('main.login') }}" class="btn btn-primary btn-lg">{{ icon('arrow-right', 18) }} Enter the Panel</a>
+        </div>
+      </div>
+    </section>
+
+    <footer class="land-foot">
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px">
+        <span class="brand-logo" style="width:30px;height:30px;border-radius:9px">{{ icon('cloud', 16) }}</span>
+        <b>{{ settings.site_name or 'CryzonCloud Cpanel' }}</b>
+      </div>
+      {{ settings.footer_text or 'Powered by CryzonCloud' }} · Built with LXC/LXD · {{ now_year if now_year else '' }}
+    </footer>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

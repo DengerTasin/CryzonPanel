@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}{{ vps.container_name }} — {{ settings.site_name }}{% endblock %}
+{% block page_title %}{{ vps.container_name }}{% endblock %}
+{% block page_sub %}{{ vps.os_type }} · {{ vps.cpu }} vCPU · {{ vps.ram }} RAM · {{ vps.disk }} disk{% endblock %}
+
+{% block topbar_actions %}
+{% if can('vps.console') %}
+<a href="{{ url_for('main.vps_console', vps_id=vps.id) }}" class="btn btn-sm btn-primary">{{ icon('terminal', 15) }} Console</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+  <a href="{{ url_for('main.dashboard') }}" class="btn btn-sm btn-ghost">{{ icon('arrow-left', 15) }} Back</a>
+  <span class="badge {{ vps.status }}" id="statusBadge"><span class="dot"></span><span id="statusText">{{ vps.status|capitalize }}</span></span>
+  {% if expired %}<span class="badge danger">{{ icon('clock', 13) }} Expired</span>{% endif %}
+  <div class="spacer"></div>
+  {% if can('vps.manage') %}
+  <form method="post" action="{{ url_for('main.vps_action', vps_id=vps.id) }}" style="display:inline">
+    <input type="hidden" name="action" value="start">
+    <button class="btn btn-sm btn-success" {{ 'disabled' if vps.status == 'running' }}>{{ icon('play', 14) }} Start</button>
+  </form>
+  <form method="post" action="{{ url_for('main.vps_action', vps_id=vps.id) }}" style="display:inline">
+    <input type="hidden" name="action" value="stop">
+    <button class="btn btn-sm" {{ 'disabled' if vps.status != 'running' }}>{{ icon('square', 13) }} Stop</button>
+  </form>
+  <form method="post" action="{{ url_for('main.vps_action', vps_id=vps.id) }}" style="display:inline">
+    <input type="hidden" name="action" value="restart">
+    <button class="btn btn-sm">{{ icon('rotate-cw', 14) }} Restart</button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="grid" style="grid-template-columns:1.7fr 1fr;align-items:start">
+  <!-- LEFT -->
+  <div>
+    <div class="card mb-3 reveal">
+      <div class="card-head"><span class="ic">{{ icon('activity', 18) }}</span><h3>Live Resources</h3><div class="spacer"></div><span class="badge info" id="liveDot"><span class="dot"></span>Live</span></div>
+      <div class="grid cols-3">
+        <div>
+          <div class="metric">
+            <div class="m-head"><span>CPU Load</span><b id="cpuVal">{{ stats.cpu }}%</b></div>
+            <div class="progress"><div class="bar" id="cpuBar" data-pct="{{ stats.cpu }}"></div></div>
+          </div>
+        </div>
+        <div>
+          <div class="metric">
+            <div class="m-head"><span>Memory</span><b id="ramVal">{{ stats.ram_pct }}%</b></div>
+            <div class="progress"><div class="bar" id="ramBar" data-pct="{{ stats.ram_pct }}"></div></div>
+            <div class="text-xs mute2 mt-1" id="ramDetail">{{ stats.ram_used|filesizeformat }} / {{ stats.ram_total|filesizeformat }}</div>
+          </div>
+        </div>
+        <div>
+          <div class="metric">
+            <div class="m-head"><span>Disk (ROM)</span><b id="diskVal">{{ stats.disk_pct }}%</b></div>
+            <div class="progress"><div class="bar" id="diskBar" data-pct="{{ stats.disk_pct }}"></div></div>
+            <div class="text-xs mute2 mt-1" id="diskDetail">{{ stats.disk_used|filesizeformat }} / {{ stats.disk_total|filesizeformat }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="grid cols-3">
+        <div class="kv"><span class="k">Processes</span><span class="v" id="procVal">{{ stats.processes }}</span></div>
+        <div class="kv"><span class="k">Uptime</span><span class="v" id="uptimeVal">{{ stats.uptime|duration }}</span></div>
+        <div class="kv"><span class="k">Container ID</span><span class="v mono text-xs">{{ vps.container_name }}</span></div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs mb-2" data-tabs="vps">
+      <button class="tab active" data-tab="overview">Overview</button>
+      {% if can('vps.backups') %}<button class="tab" data-tab="backups">Backups</button>{% endif %}
+      {% if can('vps.share') %}<button class="tab" data-tab="shares">Sharing</button>{% endif %}
+      {% if can('vps.manage') %}<button class="tab" data-tab="danger">Danger Zone</button>{% endif %}
+    </div>
+
+    <div data-panel="overview" data-scope="vps">
+      <div class="card reveal">
+        <div class="card-head"><span class="ic">{{ icon('info', 18) }}</span><h3>Container Details</h3></div>
+        <div class="grid cols-2">
+          <div>
+            <div class="kv"><span class="k">Hostname</span><span class="v mono">{{ vps.container_name }}</span></div>
+            <div class="kv"><span class="k">OS</span><span class="v">{{ vps.os_type }}</span></div>
+            <div class="kv"><span class="k">CPU Cores</span><span class="v">{{ vps.cpu }} vCPU</span></div>
+            <div class="kv"><span class="k">Memory</span><span class="v">{{ vps.ram }}</span></div>
+          </div>
+          <div>
+            <div class="kv"><span class="k">Disk</span><span class="v">{{ vps.disk }}</span></div>
+            <div class="kv"><span class="k">Owner</span><span class="v">{{ vps.owner.username if vps.owner else current_user.username }}</span></div>
+            <div class="kv"><span class="k">Created</span><span class="v">{{ vps.created_at|dt('%b %d, %Y') }}</span></div>
+            <div class="kv"><span class="k">Expires</span><span class="v">{{ vps.expires_at|dt if vps.expires_at else 'Never' }}</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if can('vps.backups') %}
+    <div data-panel="backups" data-scope="vps" class="hidden">
+      <div class="card reveal">
+        <div class="card-head"><span class="ic">{{ icon('layers', 18) }}</span><h3>Backups</h3><div class="spacer"></div>
+          <form method="post" action="{{ url_for('main.vps_backup_create', vps_id=vps.id) }}"><button class="btn btn-sm btn-primary">{{ icon('plus', 14) }} Create Backup</button></form>
+        </div>
+        {% if backups %}
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr><th>Name</th><th>Size</th><th>Created</th><th></th></tr></thead>
+            <tbody>
+            {% for b in backups %}
+              <tr>
+                <td class="mono text-sm">{{ b.name }}</td>
+                <td>{{ b.size_mb }} MB</td>
+                <td class="muted">{{ b.created_at|dt }}</td>
+                <td style="text-align:right">
+                  <form method="post" action="{{ url_for('main.vps_backup_restore', vps_id=vps.id, bid=b.id) }}" style="display:inline"><button class="btn btn-xs">{{ icon('refresh-cw', 13) }} Restore</button></form>
+                  <form method="post" action="{{ url_for('main.vps_backup_delete', vps_id=vps.id, bid=b.id) }}" style="display:inline" data-confirm="Delete this backup?"><button class="btn btn-xs btn-danger">{{ icon('trash-2', 13) }}</button></form>
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty"><div class="e-ico">{{ icon('layers', 30) }}</div><h3>No backups</h3><p>Create a snapshot of this container to restore later.</p></div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if can('vps.share') %}
+    <div data-panel="shares" data-scope="vps" class="hidden">
+      <div class="card reveal">
+        <div class="card-head"><span class="ic">{{ icon('share-2', 18) }}</span><h3>Share Access</h3></div>
+        <form method="post" action="{{ url_for('main.vps_share', vps_id=vps.id) }}" class="input-group mb-2">
+          <div class="field mb-0" style="flex:1"><label>Username</label><input class="input" name="username" placeholder="username to share with" required></div>
+          <button class="btn btn-primary">{{ icon('share-2', 15) }} Share</button>
+        </form>
+        {% if shares %}
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr><th>User</th><th>Shared</th><th></th></tr></thead>
+            <tbody>
+            {% for s in shares %}
+              <tr>
+                <td>{{ icon('user', 14) }} {{ s.username }}</td>
+                <td class="muted">{{ s.created_at|dt }}</td>
+                <td style="text-align:right"><form method="post" action="{{ url_for('main.vps_unshare', vps_id=vps.id, share_id=s.id) }}"><button class="btn btn-xs btn-danger">Revoke</button></form></td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}<p class="muted text-sm">This container is not shared with anyone.</p>{% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if can('vps.manage') %}
+    <div data-panel="danger" data-scope="vps" class="hidden">
+      <div class="card reveal" style="border-color:rgba(239,68,68,0.3)">
+        <div class="card-head"><span class="ic" style="color:#fca5a5">{{ icon('alert-triangle', 18) }}</span><h3>Danger Zone</h3></div>
+        <div class="kv"><span class="k">Reinstall<small class="mute2" style="display:block">Wipes the container and reinstalls the OS</small></span>
+          <form method="post" action="{{ url_for('main.vps_action', vps_id=vps.id) }}" data-confirm="Reinstall will erase all data. Continue?"><input type="hidden" name="action" value="reinstall"><button class="btn btn-sm btn-warning">{{ icon('refresh-cw', 14) }} Reinstall</button></form>
+        </div>
+        {% if can('vps.delete') %}
+        <div class="kv"><span class="k">Delete<small class="mute2" style="display:block">Permanently destroy this container</small></span>
+          <form method="post" action="{{ url_for('main.vps_action', vps_id=vps.id) }}" data-confirm="Permanently delete this VPS? This cannot be undone."><input type="hidden" name="action" value="delete"><button class="btn btn-sm btn-danger">{{ icon('trash-2', 14) }} Delete VPS</button></form>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- RIGHT -->
+  <div>
+    <div class="card mb-3 reveal">
+      <div class="card-head"><span class="ic">{{ icon('link', 18) }}</span><h3>Connection</h3></div>
+      <div class="field">
+        <label>IP Address</label>
+        <div class="input-group">
+          <input class="input mono" id="ipField" value="{{ ip or '—' }}" readonly>
+          {% if ip %}<button class="btn btn-icon" data-copy="{{ ip }}" title="Copy">{{ icon('copy', 15) }}</button>{% endif %}
+        </div>
+      </div>
+      {% if vps.ssh_command %}
+      <div class="field">
+        <label>SSH Command</label>
+        <div class="input-group">
+          <input class="input mono" id="sshField" value="{{ vps.ssh_command }}" readonly>
+          <button class="btn btn-icon" data-copy="{{ vps.ssh_command }}" title="Copy">{{ icon('copy', 15) }}</button>
+        </div>
+      </div>
+      {% endif %}
+      {% if vps.ssh_password %}
+      <div class="field">
+        <label>Root Password</label>
+        <div class="input-group">
+          <input class="input mono" type="password" id="pwField" value="{{ vps.ssh_password }}" readonly>
+          <button class="btn btn-icon" onclick="var f=document.getElementById('pwField');f.type=f.type==='password'?'text':'password'">{{ icon('eye', 15) }}</button>
+          <button class="btn btn-icon" data-copy="{{ vps.ssh_password }}">{{ icon('copy', 15) }}</button>
+        </div>
+      </div>
+      {% endif %}
+      {% if can('vps.manage') %}
+      <form method="post" action="{{ url_for('main.vps_regen_ssh', vps_id=vps.id) }}" data-confirm="Regenerate SSH credentials?">
+        <button class="btn btn-block btn-sm">{{ icon('key', 15) }} Regenerate Credentials</button>
+      </form>
+      {% endif %}
+    </div>
+
+    <div class="card reveal">
+      <div class="card-head"><span class="ic">{{ icon('zap', 18) }}</span><h3>Quick Actions</h3></div>
+      <div class="grid" style="gap:10px">
+        {% if can('vps.console') %}<a href="{{ url_for('main.vps_console', vps_id=vps.id) }}" class="btn btn-block">{{ icon('terminal', 15) }} Open Console</a>{% endif %}
+        {% if can('vps.files') %}<a href="{{ url_for('main.vps_files', vps_id=vps.id) }}" class="btn btn-block">{{ icon('folder', 15) }} File Manager</a>{% endif %}
+        {% if can('vps.processes') %}<a href="{{ url_for('main.vps_processes', vps_id=vps.id) }}" class="btn btn-block">{{ icon('activity', 15) }} Process Manager</a>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  const vid = {{ vps.id }};
+  const $ = (id) => document.getElementById(id);
+  function setBar(id, pct){ const b = $(id); if(b){ b.style.width = Math.max(0,Math.min(100,pct))+'%'; const w=b.closest('.progress'); if(w){ w.classList.toggle('warn',pct>=75&&pct<90); w.classList.toggle('danger',pct>=90);} } }
+  function fmt(bytes){ if(!bytes) return '0 B'; const u=['B','KB','MB','GB','TB']; let i=0; let n=bytes; while(n>=1024&&i<u.length-1){n/=1024;i++;} return n.toFixed(1)+' '+u[i]; }
+  function fmtDur(s){ s=parseInt(s)||0; if(s<=0) return '—'; const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60); let p=[]; if(d)p.push(d+'d'); if(h)p.push(h+'h'); if(m&&!d)p.push(m+'m'); return p.join(' ')||s+'s'; }
+  async function refresh(){
+    try{
+      const r = await fetch('/api/vps/'+vid+'/stats');
+      if(!r.ok) return;
+      const d = await r.json();
+      if(d.cpu!==undefined){ $('cpuVal').textContent = d.cpu+'%'; setBar('cpuBar', d.cpu); }
+      if(d.ram_pct!==undefined){ $('ramVal').textContent = d.ram_pct+'%'; setBar('ramBar', d.ram_pct); $('ramDetail').textContent = fmt(d.ram_used)+' / '+fmt(d.ram_total); }
+      if(d.disk_pct!==undefined){ $('diskVal').textContent = d.disk_pct+'%'; setBar('diskBar', d.disk_pct); $('diskDetail').textContent = fmt(d.disk_used)+' / '+fmt(d.disk_total); }
+      if(d.processes!==undefined) $('procVal').textContent = d.processes;
+      if(d.uptime!==undefined) $('uptimeVal').textContent = fmtDur(d.uptime);
+      if(d.ip) $('ipField').value = d.ip;
+      if(d.status){ $('statusText').textContent = d.status.charAt(0).toUpperCase()+d.status.slice(1); $('statusBadge').className = 'badge '+d.status; }
+    }catch(e){}
+  }
+  setInterval(refresh, 5000);
+})();
+</script>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

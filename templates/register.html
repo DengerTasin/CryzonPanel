@@ -1,0 +1,72 @@
+{% from "_icons.html" import icon %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create account — {{ settings.site_name or 'CryzonCloud Cpanel' }}</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%2322d3ee'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='24' height='24' rx='6' fill='url(%23g)'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+  <div class="bg-fx"><span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span></div>
+
+  <div class="auth-wrap">
+    <aside class="auth-side">
+      <div class="as-content">
+        <h2>Start deploying in <span class="gradient-text">under a minute</span></h2>
+        <p>Create your free account and spin up your first LXD container with dedicated RAM, disk and CPU cores.</p>
+        <div class="as-list">
+          <div class="li">{{ icon('zap', 18) }} Instant container provisioning</div>
+          <div class="li">{{ icon('hard-drive', 18) }} Dedicated RAM, ROM &amp; cores</div>
+          <div class="li">{{ icon('globe', 18) }} Public networking &amp; port forwarding</div>
+          <div class="li">{{ icon('life-buoy', 18) }} Built-in support ticketing</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="auth-main">
+      <div class="auth-card">
+        <a href="{{ url_for('main.index') }}" class="brand">
+          <span class="brand-logo">{{ icon('cloud', 22) }}</span>
+          <span class="brand-name">{{ settings.site_name or 'CryzonCloud' }}<span>Cpanel v3</span></span>
+        </a>
+        <h1>Create account</h1>
+        <p class="sub">Join CryzonCloud and launch your first container</p>
+
+        <form method="post" autocomplete="on">
+          <div class="field">
+            <label for="username">Username</label>
+            <input class="input" type="text" id="username" name="username" placeholder="johndoe" required minlength="3" autofocus>
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input class="input" type="email" id="email" name="email" placeholder="you@example.com" required>
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input class="input" type="password" id="password" name="password" placeholder="At least 6 characters" required minlength="6">
+          </div>
+          <button type="submit" class="btn btn-primary btn-block btn-lg mt-1">{{ icon('rocket', 18) }} Create account</button>
+        </form>
+
+        <p class="auth-foot">Already have an account? <a href="{{ url_for('main.login') }}">Sign in</a></p>
+      </div>
+    </main>
+  </div>
+
+  <div class="flash-wrap">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+      <div class="flash {{ cat }}">
+        <span class="f-ico">{% if cat == 'success' %}{{ icon('check-circle', 20) }}{% elif cat == 'error' %}{{ icon('x-circle', 20) }}{% else %}{{ icon('info', 20) }}{% endif %}</span>
+        <span>{{ msg }}</span><button class="f-close">{{ icon('x', 16) }}</button>
+      </div>
+      {% endfor %}
+    {% endwith %}
+  </div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

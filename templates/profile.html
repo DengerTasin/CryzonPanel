@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}Profile — {{ settings.site_name }}{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+{% block page_sub %}Manage your account, security and API access{% endblock %}
+
+{% block content %}
+<div class="grid" style="grid-template-columns:1fr 1fr;align-items:start">
+  <div>
+    <!-- Account card -->
+    <div class="card reveal mb-3" style="background:var(--grad-soft);border-color:rgba(99,102,241,0.25)">
+      <div class="flex items-center gap-2">
+        <span class="avatar" style="width:64px;height:64px;font-size:26px">{{ current_user.username[0]|upper }}</span>
+        <div>
+          <div style="font-size:20px;font-weight:750">{{ current_user.username }}</div>
+          <div class="muted text-sm">{{ current_user.email }}</div>
+          {% if current_user.role %}
+          <span class="role-pill mt-1" style="border-color:{{ current_user.role.color }}40;background:{{ current_user.role.color }}1a;color:{{ current_user.role.color }}">
+            <span class="rdot" style="background:{{ current_user.role.color }}"></span>{{ current_user.role.name }}
+          </span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Update account -->
+    <div class="card reveal mb-3">
+      <div class="card-head"><h3>{{ icon('edit-3', 18) }} Update Account</h3></div>
+      <form method="post" action="{{ url_for('main.profile') }}">
+        <div class="field"><label>Username</label><input class="input" value="{{ current_user.username }}" disabled></div>
+        <div class="field"><label>Email Address</label><input class="input" type="email" name="email" value="{{ current_user.email }}"></div>
+        <div class="field"><label>New Password</label><input class="input" type="password" name="password" placeholder="Leave blank to keep current"><div class="field-hint">Minimum 6 characters.</div></div>
+        <button class="btn btn-primary">{{ icon('check', 16) }} Save Changes</button>
+      </form>
+    </div>
+
+    <!-- API key -->
+    <div class="card reveal">
+      <div class="card-head"><h3>{{ icon('key', 18) }} API Access</h3></div>
+      <div class="field">
+        <label>Personal API Key</label>
+        <div class="input-group">
+          <input class="input mono text-xs" value="{{ current_user.api_key or '—' }}" readonly id="apiKeyField">
+          <button type="button" class="btn" data-copy="{{ current_user.api_key or '' }}">{{ icon('copy', 15) }}</button>
+        </div>
+        <div class="field-hint">Use as <code class="mono">X-API-Key</code> header for automation.</div>
+      </div>
+      <form method="post" action="{{ url_for('main.regen_api_key') }}" data-confirm="Regenerate API key? Existing integrations will break.">
+        <button class="btn btn-sm btn-warning">{{ icon('refresh-cw', 14) }} Regenerate Key</button>
+      </form>
+    </div>
+  </div>
+
+  <div>
+    <!-- Role & permissions -->
+    <div class="card reveal mb-3">
+      <div class="card-head"><h3>{{ icon('shield', 18) }} My Permissions</h3></div>
+      {% if current_user.role %}
+      <div class="kv"><span class="k">Role</span><span class="v">{{ current_user.role.name }}</span></div>
+      <div class="kv"><span class="k">Description</span><span class="v text-xs">{{ current_user.role.description or '—' }}</span></div>
+      <div class="kv"><span class="k">Permissions granted</span><span class="v">{{ current_user.role.permissions|length }}</span></div>
+      <div class="divider"></div>
+      <div class="flex gap-1" style="flex-wrap:wrap">
+        {% for p in current_user.role.permissions %}
+        <span class="badge">{{ icon('check', 11) }} {{ p }}</span>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="muted text-sm">No role assigned. Contact an administrator.</div>
+      {% endif %}
+    </div>
+
+    <!-- Activity -->
+    <div class="card reveal" style="padding:0;overflow:hidden">
+      <div class="card-head" style="padding:18px 22px;border-bottom:1px solid var(--border)"><h3>{{ icon('activity', 18) }} Recent Activity</h3></div>
+      <div style="max-height:420px;overflow:auto">
+        {% for a in activity %}
+        <div style="padding:13px 22px;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;gap:12px;align-items:center">
+          <span class="s-ico" style="width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--grad-soft);border:1px solid rgba(99,102,241,0.25);color:#a5b4fc;flex-shrink:0">{{ icon('zap', 15) }}</span>
+          <div style="flex:1;min-width:0">
+            <div class="text-sm" style="font-weight:600">{{ a.action }}</div>
+            <div class="muted text-xs">{{ a.details or a.resource or '—' }}</div>
+          </div>
+          <span class="muted text-xs nowrap">{{ a.created_at|dt('%b %d, %H:%M') }}</span>
+        </div>
+        {% else %}
+        <div class="muted text-sm" style="padding:28px;text-align:center">No activity recorded yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

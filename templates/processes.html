@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}Processes — {{ vps.container_name }}{% endblock %}
+{% block page_title %}Process Manager{% endblock %}
+{% block page_sub %}{{ vps.container_name }} · running processes{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('main.vps_detail', vps_id=vps.id) }}" class="btn btn-sm btn-ghost">{{ icon('arrow-left', 15) }} Back</a>
+{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+  <span class="chip">{{ icon('activity', 14) }} {{ procs|length }} processes</span>
+  {% if demo %}<span class="badge warning">{{ icon('info', 13) }} Demo data</span>{% endif %}
+  <div class="spacer"></div>
+  <button class="btn btn-sm" onclick="location.reload()">{{ icon('refresh-cw', 14) }} Refresh</button>
+</div>
+
+<div class="card reveal" style="padding:0;overflow:hidden">
+  <div class="table-wrap" style="border:none;border-radius:0">
+    <table class="data">
+      <thead><tr><th>PID</th><th>User</th><th>CPU</th><th>MEM</th><th>Command</th><th></th></tr></thead>
+      <tbody>
+      {% for p in procs %}
+        <tr>
+          <td class="mono text-sm">{{ p.pid }}</td>
+          <td>{{ icon('user', 13) }} {{ p.user }}</td>
+          <td><span class="badge {{ 'warning' if (p.cpu|float) > 10 else 'info' }}">{{ p.cpu }}%</span></td>
+          <td class="muted">{{ p.mem }}%</td>
+          <td class="mono text-xs">{{ p.cmd }}</td>
+          <td style="text-align:right">
+            <form method="post" action="{{ url_for('main.vps_kill', vps_id=vps.id) }}" data-confirm="Kill process {{ p.pid }}?">
+              <input type="hidden" name="pid" value="{{ p.pid }}">
+              <button class="btn btn-xs btn-danger">{{ icon('x', 12) }} Kill</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6"><div class="empty" style="padding:40px"><div class="e-ico">{{ icon('activity', 28) }}</div><h3>No processes</h3><p>Nothing is running in this container.</p></div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

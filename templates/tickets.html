@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}Support — {{ settings.site_name }}{% endblock %}
+{% block page_title %}Support Center{% endblock %}
+{% block page_sub %}Open a ticket and our team will get back to you quickly{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-primary btn-sm" data-modal-open="ticketModal">{{ icon('plus', 15) }} New Ticket</button>
+{% endblock %}
+
+{% block content %}
+<div class="grid cols-3 mb-3">
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico">{{ icon('life-buoy', 22) }}</span></div>
+    <div class="s-val" data-count="{{ tickets|length }}">0</div>
+    <div class="s-label">Total Tickets</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico" style="color:#fcd34d;border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.1)">{{ icon('clock', 22) }}</span></div>
+    <div class="s-val" data-count="{{ tickets|selectattr('status','equalto','open')|list|length }}">0</div>
+    <div class="s-label">Open</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico" style="color:#86efac;border-color:rgba(34,197,94,0.3);background:rgba(34,197,94,0.1)">{{ icon('check-circle', 22) }}</span></div>
+    <div class="s-val" data-count="{{ tickets|selectattr('status','equalto','closed')|list|length }}">0</div>
+    <div class="s-label">Closed</div>
+  </div>
+</div>
+
+<div class="grid auto-lg">
+  {% for t in tickets %}
+  <a href="{{ url_for('main.ticket_detail', tid=t.id) }}" class="card glow reveal" style="text-decoration:none;color:inherit">
+    <div class="flex items-center justify-between mb-1">
+      <span class="badge {{ 'success' if t.status=='closed' else 'warning' }}"><span class="dot"></span>{{ t.status|capitalize }}</span>
+      <span class="muted text-xs">#{{ t.id }}</span>
+    </div>
+    <div style="font-size:15px;font-weight:700;margin-bottom:6px">{{ t.subject }}</div>
+    <div class="flex items-center justify-between text-xs muted">
+      <span class="flex items-center gap-1">{{ icon('user', 13) }} {{ t.username }}</span>
+      <span>{{ t.updated_at|dt('%b %d, %H:%M') }}</span>
+    </div>
+  </a>
+  {% else %}
+  <div class="card" style="grid-column:1/-1"><div class="empty" style="padding:50px"><div class="e-ico">{{ icon('life-buoy', 34) }}</div><h3>No tickets yet</h3><p>Need a hand? Open your first support ticket and we'll respond shortly.</p><button class="btn btn-primary" data-modal-open="ticketModal">{{ icon('plus', 16) }} Open a Ticket</button></div></div>
+  {% endfor %}
+</div>
+
+<div class="modal-backdrop" id="ticketModal">
+  <div class="modal">
+    <form method="post" action="{{ url_for('main.ticket_create') }}">
+      <div class="modal-head">
+        <span class="s-ico" style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--grad-soft);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc">{{ icon('life-buoy', 20) }}</span>
+        <div><h3>Open Support Ticket</h3><div class="card-sub">Describe your issue in detail</div></div>
+      </div>
+      <div class="modal-body">
+        <div class="field"><label>Subject</label><input class="input" name="subject" placeholder="Short summary of the issue" required></div>
+        <div class="field"><label>Message</label><textarea class="input" name="message" rows="5" placeholder="Tell us what's happening…" required></textarea></div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn-primary">{{ icon('send', 16) }} Submit Ticket</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

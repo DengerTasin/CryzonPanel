@@ -1,0 +1,184 @@
+{% extends "admin/base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}{{ vps.container_name }} — Admin{% endblock %}
+{% block page_title %}{{ vps.container_name }}{% endblock %}
+{% block page_sub %}Owned by {{ vps.username }} · {{ vps.os_type }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('admin.vps_list') }}" class="btn btn-sm btn-ghost">{{ icon('arrow-left', 15) }} All VPS</a>
+{% if can('vps.manage') %}
+<a href="{{ url_for('main.vps_console', vps_id=vps.id) }}" class="btn btn-sm btn-primary">{{ icon('terminal', 15) }} Console</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- Header card -->
+<div class="card reveal mb-3" style="background:var(--grad-soft);border-color:rgba(99,102,241,0.25)">
+  <div class="flex items-center justify-between" style="flex-wrap:wrap;gap:16px">
+    <div class="flex items-center gap-2">
+      <span class="s-ico" style="width:54px;height:54px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(135deg,#6366f1,#22d3ee);color:#fff">{{ icon('server', 26) }}</span>
+      <div>
+        <div style="font-size:20px;font-weight:750">{{ vps.container_name }}</div>
+        <div class="muted text-sm">{{ vps.os_type }} · {{ vps.cpu }} vCPU · {{ vps.ram }} RAM · {{ vps.disk }} disk</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-1" style="flex-wrap:wrap">
+      <span class="badge {{ vps.status }}"><span class="dot"></span>{{ vps.status|capitalize }}</span>
+      {% if can('vps.manage') %}
+      <form method="post" action="{{ url_for('admin.vps_action', vps_id=vps.id) }}"><input type="hidden" name="action" value="start"><button class="btn btn-sm btn-success">{{ icon('play', 14) }} Start</button></form>
+      <form method="post" action="{{ url_for('admin.vps_action', vps_id=vps.id) }}"><input type="hidden" name="action" value="stop"><button class="btn btn-sm">{{ icon('square', 14) }} Stop</button></form>
+      <form method="post" action="{{ url_for('admin.vps_action', vps_id=vps.id) }}"><input type="hidden" name="action" value="restart"><button class="btn btn-sm">{{ icon('rotate-cw', 14) }} Restart</button></form>
+      <form method="post" action="{{ url_for('admin.vps_action', vps_id=vps.id) }}" data-confirm="Reinstall {{ vps.container_name }}? All data will be wiped."><input type="hidden" name="action" value="reinstall"><button class="btn btn-sm btn-warning">{{ icon('refresh-cw', 14) }} Reinstall</button></form>
+      {% endif %}
+      {% if can('vps.delete') %}
+      <form method="post" action="{{ url_for('admin.vps_action', vps_id=vps.id) }}" data-confirm="Permanently delete {{ vps.container_name }}?"><input type="hidden" name="action" value="delete"><button class="btn btn-sm btn-danger">{{ icon('trash-2', 14) }} Delete</button></form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns:1.4fr 1fr;align-items:start">
+  <div>
+    <!-- Live resources -->
+    <div class="card reveal mb-3">
+      <div class="card-head"><h3>{{ icon('activity', 18) }} Live Resources</h3><span class="badge primary" id="liveBadge">Live</span></div>
+      <div class="metric">
+        <div class="m-head"><b>CPU Usage</b><span id="cpuVal">{{ stats.cpu }}%</span></div>
+        <div class="progress"><span class="bar" data-pct="{{ stats.cpu }}" id="cpuBar"></span></div>
+      </div>
+      <div class="metric">
+        <div class="m-head"><b>Memory</b><span id="ramVal">{{ stats.ram_used|filesizeformat }} / {{ stats.ram_total|filesizeformat }}</span></div>
+        <div class="progress"><span class="bar" data-pct="{{ stats.ram_pct }}" id="ramBar"></span></div>
+      </div>
+      <div class="metric">
+        <div class="m-head"><b>Disk</b><span id="diskVal">{{ stats.disk_used|filesizeformat }} / {{ stats.disk_total|filesizeformat }}</span></div>
+        <div class="progress"><span class="bar" data-pct="{{ stats.disk_pct }}" id="diskBar"></span></div>
+      </div>
+      <div class="grid cols-3 mt-2">
+        <div class="kv" style="flex-direction:column;gap:2px;border:none"><span class="k">Processes</span><span class="v" id="procVal">{{ stats.processes }}</span></div>
+        <div class="kv" style="flex-direction:column;gap:2px;border:none"><span class="k">Uptime</span><span class="v">{{ stats.uptime|duration }}</span></div>
+        <div class="kv" style="flex-direction:column;gap:2px;border:none"><span class="k">Status</span><span class="v" id="statusVal">{{ stats.status|capitalize }}</span></div>
+      </div>
+    </div>
+
+    <!-- Edit resources -->
+    {% if can('vps.manage') %}
+    <div class="card reveal">
+      <div class="card-head"><h3>{{ icon('sliders', 18) }} Edit Resources</h3></div>
+      <form method="post" action="{{ url_for('admin.vps_update', vps_id=vps.id) }}">
+        <div class="grid cols-2">
+          <div class="field">
+            <label>RAM</label>
+            <select class="select" name="ram">{% for r in ram_options %}<option value="{{ r }}" {{ 'selected' if r==vps.ram }}>{{ r }}</option>{% endfor %}</select>
+          </div>
+          <div class="field">
+            <label>CPU Cores</label>
+            <select class="select" name="cpu">{% for c in cpu_options %}<option value="{{ c }}" {{ 'selected' if c==vps.cpu }}>{{ c }} vCPU</option>{% endfor %}</select>
+          </div>
+          <div class="field">
+            <label>Disk (ROM)</label>
+            <select class="select" name="disk">{% for d in disk_options %}<option value="{{ d }}" {{ 'selected' if d==vps.disk }}>{{ d }}</option>{% endfor %}</select>
+          </div>
+          <div class="field">
+            <label>Operating System</label>
+            <select class="select" name="os_type">{% for os in os_options %}<option value="{{ os.value }}" {{ 'selected' if os.value==vps.os_type }}>{{ os.label }}</option>{% endfor %}</select>
+          </div>
+          <div class="field">
+            <label>Node</label>
+            <select class="select" name="node_id">
+              <option value="">Auto (local)</option>
+              {% for n in nodes %}<option value="{{ n.id }}" {{ 'selected' if vps.node_id==n.id }}>{{ n.name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label>Expiry (days, 0 = never)</label>
+            <input class="input" type="number" name="days" min="0" value="0">
+          </div>
+        </div>
+        <button class="btn btn-primary">{{ icon('check', 16) }} Save Resources</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  <aside>
+    <!-- Connection info -->
+    <div class="card reveal mb-3">
+      <div class="card-head"><h3>{{ icon('globe', 18) }} Connection</h3></div>
+      <div class="kv"><span class="k">IPv4 Address</span><span class="v mono">{{ ip or '—' }}</span></div>
+      <div class="kv"><span class="k">SSH Command</span><span class="v mono text-xs">{{ vps.ssh_command or ('ssh root@' ~ ip) if ip else '—' }}</span></div>
+      <div class="kv"><span class="k">Root Password</span><span class="v mono text-xs">{{ vps.ssh_password or '—' }}</span></div>
+      <div class="kv"><span class="k">Container ID</span><span class="v mono text-xs">{{ vps.container_id or vps.container_name }}</span></div>
+      <div class="flex gap-1 mt-2">
+        {% if ip %}<button class="btn btn-sm" data-copy="ssh root@{{ ip }}">{{ icon('copy', 14) }} Copy SSH</button>{% endif %}
+        {% if vps.ssh_password %}<button class="btn btn-sm" data-copy="{{ vps.ssh_password }}">{{ icon('key', 14) }} Copy Password</button>{% endif %}
+      </div>
+    </div>
+
+    <!-- Owner / transfer -->
+    <div class="card reveal mb-3">
+      <div class="card-head"><h3>{{ icon('user', 18) }} Ownership</h3></div>
+      <div class="kv"><span class="k">Current Owner</span><span class="v">{{ vps.username }}</span></div>
+      <div class="kv"><span class="k">Node</span><span class="v">{{ vps.node.name if vps.node else 'local' }}</span></div>
+      <div class="kv"><span class="k">Created</span><span class="v">{{ vps.created_at|dt('%Y-%m-%d') }}</span></div>
+      {% if can('vps.transfer') %}
+      <form method="post" action="{{ url_for('admin.vps_transfer', vps_id=vps.id) }}" class="mt-2">
+        <div class="field mb-1">
+          <label>Transfer to user</label>
+          <select class="select" name="user_id">{% for u in users %}<option value="{{ u.id }}">{{ u.username }}</option>{% endfor %}</select>
+        </div>
+        <button class="btn btn-sm w-full">{{ icon('share-2', 14) }} Transfer Ownership</button>
+      </form>
+      {% endif %}
+    </div>
+
+    <!-- Quick links -->
+    <div class="card reveal">
+      <div class="card-head"><h3>{{ icon('zap', 18) }} Quick Links</h3></div>
+      <div class="flex gap-1" style="flex-wrap:wrap">
+        <a href="{{ url_for('main.vps_console', vps_id=vps.id) }}" class="btn btn-sm">{{ icon('terminal', 14) }} Console</a>
+        <a href="{{ url_for('main.vps_files', vps_id=vps.id) }}" class="btn btn-sm">{{ icon('folder', 14) }} Files</a>
+        <a href="{{ url_for('main.vps_processes', vps_id=vps.id) }}" class="btn btn-sm">{{ icon('activity', 14) }} Processes</a>
+      </div>
+    </div>
+  </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var vid = {{ vps.id }};
+  function setBar(id, pct) {
+    var bar = document.getElementById(id);
+    if (!bar) return;
+    bar.style.width = Math.max(0, Math.min(100, pct)) + '%';
+    var wrap = bar.closest('.progress');
+    if (wrap) { wrap.classList.toggle('warn', pct >= 75 && pct < 90); wrap.classList.toggle('danger', pct >= 90); }
+  }
+  function fmt(b) {
+    if (!b) return '0 B';
+    var u = ['B','KB','MB','GB','TB'], i = 0;
+    while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
+    return b.toFixed(1) + ' ' + u[i];
+  }
+  function tick() {
+    fetch('/api/vps/' + vid + '/stats').then(function (r) { return r.json(); }).then(function (d) {
+      if (d.error) return;
+      document.getElementById('cpuVal').textContent = d.cpu + '%';
+      setBar('cpuBar', d.cpu);
+      document.getElementById('ramVal').textContent = fmt(d.ram_used) + ' / ' + fmt(d.ram_total);
+      setBar('ramBar', d.ram_pct);
+      document.getElementById('diskVal').textContent = fmt(d.disk_used) + ' / ' + fmt(d.disk_total);
+      setBar('diskBar', d.disk_pct);
+      document.getElementById('procVal').textContent = d.processes;
+      document.getElementById('statusVal').textContent = (d.status || '').charAt(0).toUpperCase() + (d.status || '').slice(1);
+    }).catch(function () {});
+  }
+  setInterval(tick, 5000);
+})();
+</script>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

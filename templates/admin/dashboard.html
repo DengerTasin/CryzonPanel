@@ -1,0 +1,171 @@
+{% extends "admin/base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}Admin Overview — {{ settings.site_name }}{% endblock %}
+{% block page_title %}Admin Overview{% endblock %}
+{% block page_sub %}Full control over containers, users, nodes and the platform{% endblock %}
+
+{% block topbar_actions %}
+{% if can('vps.create') %}
+<a href="{{ url_for('admin.vps_list') }}" class="btn btn-primary btn-sm">{{ icon('plus', 15) }} Provision VPS</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- KPI grid -->
+<div class="grid cols-4 mb-3">
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico">{{ icon('server', 22) }}</span><span class="s-trend trend-up">Fleet</span></div>
+    <div class="s-val" data-count="{{ stats.vps }}">0</div>
+    <div class="s-label">Total Containers</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico" style="color:#86efac;border-color:rgba(34,197,94,0.3);background:rgba(34,197,94,0.1)">{{ icon('play', 22) }}</span><span class="s-trend trend-up">Live</span></div>
+    <div class="s-val" data-count="{{ stats.running }}">0</div>
+    <div class="s-label">Running Now</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico" style="color:#7dd3fc;border-color:rgba(56,189,248,0.3);background:rgba(56,189,248,0.1)">{{ icon('users', 22) }}</span><span class="s-trend trend-flat">Accounts</span></div>
+    <div class="s-val" data-count="{{ stats.users }}">0</div>
+    <div class="s-label">Registered Users</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico" style="color:#a5b4fc;border-color:rgba(99,102,241,0.3);background:rgba(99,102,241,0.1)">{{ icon('cpu', 22) }}</span><span class="s-trend trend-flat">Infra</span></div>
+    <div class="s-val" data-count="{{ stats.nodes }}">0</div>
+    <div class="s-label">Compute Nodes</div>
+  </div>
+</div>
+
+<div class="grid cols-4 mb-3">
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico" style="color:#fcd34d;border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.1)">{{ icon('life-buoy', 22) }}</span><span class="s-trend trend-down">Open</span></div>
+    <div class="s-val" data-count="{{ stats.tickets }}">0</div>
+    <div class="s-label">Open Tickets</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico" style="color:#c4b5fd;border-color:rgba(139,92,246,0.3);background:rgba(139,92,246,0.1)">{{ icon('database', 22) }}</span><span class="s-trend trend-flat">Snapshots</span></div>
+    <div class="s-val" data-count="{{ stats.backups }}">0</div>
+    <div class="s-label">Backups Stored</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico" style="color:#86efac;border-color:rgba(34,197,94,0.3);background:rgba(34,197,94,0.1)">{{ icon('activity', 22) }}</span><span class="s-trend trend-up">Healthy</span></div>
+    <div class="s-val" data-live-stat="uptime">99.9<span style="font-size:16px">%</span></div>
+    <div class="s-label">Platform Uptime</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico" style="color:#fca5a5;border-color:rgba(239,68,68,0.3);background:rgba(239,68,68,0.1)">{{ icon('zap', 22) }}</span><span class="s-trend trend-flat">Realtime</span></div>
+    <div class="s-val" data-live-stat="load">0.4<span style="font-size:16px">%</span></div>
+    <div class="s-label">Average Load</div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns:1.6fr 1fr;align-items:start">
+  <!-- Recent deployments -->
+  <section>
+    <div class="section-head">
+      <h2>{{ icon('server', 20) }} Recent Deployments</h2>
+      <div class="spacer"></div>
+      <a href="{{ url_for('admin.vps_list') }}" class="btn btn-sm btn-ghost">View all {{ icon('arrow-right', 14) }}</a>
+    </div>
+    <div class="card reveal" style="padding:0;overflow:hidden">
+      <div class="table-wrap" style="border:none;border-radius:0">
+        <table class="data">
+          <thead><tr><th>Container</th><th>Owner</th><th>Specs</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+          {% for v in recent_vps %}
+            <tr>
+              <td><span class="mono text-sm">{{ v.container_name }}</span><div class="muted text-xs">{{ v.os_type }}</div></td>
+              <td><span class="flex items-center gap-1">{{ icon('user', 14) }} {{ v.username }}</span></td>
+              <td><span class="text-xs muted">{{ v.cpu }} vCPU · {{ v.ram }} · {{ v.disk }}</span></td>
+              <td><span class="badge {{ v.status }}"><span class="dot"></span>{{ v.status|capitalize }}</span></td>
+              <td><a href="{{ url_for('admin.vps_detail', vps_id=v.id) }}" class="btn btn-xs">{{ icon('eye', 13) }}</a></td>
+            </tr>
+          {% else %}
+            <tr><td colspan="5"><div class="empty" style="padding:36px"><div class="e-ico">{{ icon('server', 26) }}</div><h3>No containers yet</h3><p>Provision the first container to see it here.</p></div></td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- System logs -->
+    <div class="section-head mt-4">
+      <h2>{{ icon('file-text', 20) }} Latest System Logs</h2>
+      <div class="spacer"></div>
+      <a href="{{ url_for('admin.logs') }}" class="btn btn-sm btn-ghost">All logs {{ icon('arrow-right', 14) }}</a>
+    </div>
+    <div class="card reveal" style="padding:0;overflow:hidden">
+      <div class="table-wrap" style="border:none;border-radius:0">
+        <table class="data">
+          <thead><tr><th>Level</th><th>Message</th><th>Source</th><th>Time</th></tr></thead>
+          <tbody>
+          {% for l in recent_logs %}
+            <tr>
+              <td><span class="badge {{ 'danger' if l.level in ['error','critical'] else ('warning' if l.level=='warning' else 'info') }}">{{ l.level }}</span></td>
+              <td class="text-sm">{{ l.message }}</td>
+              <td class="muted text-xs">{{ l.source }}</td>
+              <td class="muted text-xs nowrap">{{ l.created_at|dt('%Y-%m-%d %H:%M') }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="4"><div class="muted text-sm" style="padding:24px;text-align:center">No logs recorded.</div></td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Nodes panel -->
+  <aside>
+    <div class="section-head">
+      <h2>{{ icon('cpu', 20) }} Node Health</h2>
+      <div class="spacer"></div>
+      <a href="{{ url_for('admin.nodes') }}" class="btn btn-sm btn-ghost">{{ icon('settings', 14) }}</a>
+    </div>
+    {% for n in nodes %}
+    <div class="card reveal mb-2">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-1">
+          <span class="s-ico" style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--grad-soft);border:1px solid rgba(99,102,241,0.28);color:#a5b4fc">{{ icon('cpu', 18) }}</span>
+          <div>
+            <div style="font-weight:700">{{ n.name }}</div>
+            <div class="muted text-xs">{{ n.hostname }}</div>
+          </div>
+        </div>
+        <span class="badge {{ n.status }}"><span class="dot"></span>{{ n.status|capitalize }}</span>
+      </div>
+      <div class="metric">
+        <div class="m-head"><b>CPU</b><span>{{ '%.1f'|format(n.cpu_usage or 0) }}%</span></div>
+        <div class="progress sm"><span class="bar" data-pct="{{ n.cpu_usage or 0 }}"></span></div>
+      </div>
+      <div class="metric">
+        <div class="m-head"><b>RAM</b><span>{{ '%.1f'|format(n.ram_usage or 0) }}%</span></div>
+        <div class="progress sm"><span class="bar" data-pct="{{ n.ram_usage or 0 }}"></span></div>
+      </div>
+      <div class="flex items-center justify-between text-xs muted">
+        <span>{{ icon('server', 13) }} {{ n.vps_count }} / {{ n.max_vps }} containers</span>
+        {% if n.is_local %}<span class="badge primary">Local</span>{% else %}<span class="badge">Remote</span>{% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div class="card"><div class="empty" style="padding:30px"><div class="e-ico">{{ icon('cpu', 26) }}</div><h3>No nodes</h3><p>Add a compute node to start deploying.</p></div></div>
+    {% endfor %}
+
+    <div class="card reveal mt-2" style="background:var(--grad-soft);border-color:rgba(99,102,241,0.25)">
+      <div class="flex items-center gap-2">
+        <span class="s-ico" style="width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc">{{ icon('rocket', 18) }}</span>
+        <div>
+          <b class="text-sm">Quick actions</b>
+          <div class="flex gap-1 mt-1" style="flex-wrap:wrap">
+            <a href="{{ url_for('admin.users') }}" class="btn btn-xs">{{ icon('users', 12) }} Users</a>
+            <a href="{{ url_for('admin.roles') }}" class="btn btn-xs">{{ icon('shield', 12) }} Roles</a>
+            <a href="{{ url_for('admin.settings') }}" class="btn btn-xs">{{ icon('settings', 12) }} Settings</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

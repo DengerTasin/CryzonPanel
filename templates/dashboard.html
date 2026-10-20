@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}Dashboard — {{ settings.site_name }}{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_sub %}Welcome back, {{ current_user.username }} 👋{% endblock %}
+
+{% block topbar_actions %}
+{% if can('vps.create') %}
+<button class="btn btn-primary btn-sm" data-modal-open="createVpsModal">{{ icon('plus', 15) }} Deploy VPS</button>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="grid cols-4 mb-3">
+  <div class="stat reveal">
+    <div class="s-top">
+      <span class="s-ico">{{ icon('server', 22) }}</span>
+      <span class="s-trend trend-up">Active</span>
+    </div>
+    <div class="s-val" data-count="{{ stats.total }}">0</div>
+    <div class="s-label">Total Containers</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top">
+      <span class="s-ico" style="color:#86efac;border-color:rgba(34,197,94,0.3);background:rgba(34,197,94,0.1)">{{ icon('play', 22) }}</span>
+      <span class="s-trend trend-up">Online</span>
+    </div>
+    <div class="s-val" data-count="{{ stats.running }}">0</div>
+    <div class="s-label">Running</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top">
+      <span class="s-ico" style="color:#cbd5e1;border-color:rgba(148,163,184,0.3);background:rgba(148,163,184,0.1)">{{ icon('square', 20) }}</span>
+      <span class="s-trend trend-flat">Idle</span>
+    </div>
+    <div class="s-val" data-count="{{ stats.stopped }}">0</div>
+    <div class="s-label">Stopped</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top">
+      <span class="s-ico" style="color:#7dd3fc;border-color:rgba(56,189,248,0.3);background:rgba(56,189,248,0.1)">{{ icon('share-2', 20) }}</span>
+      <span class="s-trend trend-flat">Shared</span>
+    </div>
+    <div class="s-val" data-count="{{ stats.shared }}">0</div>
+    <div class="s-label">Shared With Me</div>
+  </div>
+</div>
+
+<!-- My containers -->
+<section id="vps">
+  <div class="section-head">
+    <h2>{{ icon('server', 20) }} My Containers</h2>
+    <div class="spacer"></div>
+    {% if can('vps.create') %}
+    <button class="btn btn-primary btn-sm" data-modal-open="createVpsModal">{{ icon('plus', 15) }} New Container</button>
+    {% endif %}
+  </div>
+
+  {% if vps_list %}
+  <div class="grid auto-lg">
+    {% for v in vps_list %}
+    <div class="card glow vps-card reveal">
+      <div class="vc-top">
+        <span class="vc-ico">{{ icon('server', 22) }}</span>
+        <div style="min-width:0;flex:1">
+          <div class="vc-name">{{ v.container_name }}</div>
+          <div class="vc-meta">{{ v.os_type }} · {{ v.created_at[:10] if v.created_at else '' }}</div>
+        </div>
+        <span class="badge {{ v.status }}"><span class="dot"></span>{{ v.status|capitalize }}</span>
+      </div>
+      <div class="vc-specs">
+        <span class="spec-chip">{{ icon('cpu', 14) }} {{ v.cpu }} vCPU</span>
+        <span class="spec-chip">{{ icon('hard-drive', 14) }} {{ v.ram }} RAM</span>
+        <span class="spec-chip">{{ icon('database', 14) }} {{ v.disk }}</span>
+      </div>
+      <div class="vc-actions">
+        <a href="{{ url_for('main.vps_detail', vps_id=v.id) }}" class="btn btn-sm btn-primary">{{ icon('gauge', 14) }} Manage</a>
+        {% if can('vps.console') %}
+        <a href="{{ url_for('main.vps_console', vps_id=v.id) }}" class="btn btn-sm">{{ icon('terminal', 14) }} Console</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card">
+    <div class="empty">
+      <div class="e-ico">{{ icon('rocket', 34) }}</div>
+      <h3>No containers yet</h3>
+      <p>Deploy your first LXD container with dedicated RAM, disk and CPU cores.</p>
+      {% if can('vps.create') %}
+      <button class="btn btn-primary" data-modal-open="createVpsModal">{{ icon('plus', 16) }} Deploy your first VPS</button>
+      {% else %}
+      <span class="badge">Ask an administrator to provision a container for you</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</section>
+
+<!-- Shared with me -->
+{% if shared %}
+<section class="mt-4">
+  <div class="section-head"><h2>{{ icon('share-2', 20) }} Shared With Me</h2></div>
+  <div class="grid auto-lg">
+    {% for v in shared %}
+    <div class="card vps-card reveal">
+      <div class="vc-top">
+        <span class="vc-ico">{{ icon('server', 22) }}</span>
+        <div style="min-width:0;flex:1">
+          <div class="vc-name">{{ v.container_name }}</div>
+          <div class="vc-meta">shared container</div>
+        </div>
+        <span class="badge {{ v.status }}"><span class="dot"></span>{{ v.status|capitalize }}</span>
+      </div>
+      <div class="vc-actions">
+        <a href="{{ url_for('main.vps_detail', vps_id=v.id) }}" class="btn btn-sm btn-primary">{{ icon('eye', 14) }} View</a>
+        {% if can('vps.console') %}
+        <a href="{{ url_for('main.vps_console', vps_id=v.id) }}" class="btn btn-sm">{{ icon('terminal', 14) }} Console</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- Create modal -->
+{% if can('vps.create') %}
+<div class="modal-backdrop" id="createVpsModal">
+  <div class="modal">
+    <form method="post" action="{{ url_for('main.vps_create') }}">
+      <div class="modal-head">
+        <span class="s-ico" style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--grad-soft);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc">{{ icon('rocket', 20) }}</span>
+        <div><h3>Deploy New Container</h3><div class="card-sub">Configure dedicated resources for your VPS</div></div>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label>Operating System</label>
+          <select class="select" name="os_type">
+            {% for os in os_options %}<option value="{{ os.value }}">{{ os.label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="grid cols-2">
+          <div class="field">
+            <label>RAM (Memory)</label>
+            <select class="select" name="ram">
+              {% for r in ram_options %}<option value="{{ r }}" {{ 'selected' if r == '2GB' }}>{{ r }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label>CPU Cores</label>
+            <select class="select" name="cpu">
+              {% for c in cpu_options %}<option value="{{ c }}" {{ 'selected' if c == '1' }}>{{ c }} vCPU</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Disk (ROM)</label>
+          <select class="select" name="disk">
+            {% for d in disk_options %}<option value="{{ d }}" {{ 'selected' if d == '20GB' }}>{{ d }}</option>{% endfor %}
+          </select>
+        </div>
+        {% if nodes %}
+        <div class="field">
+          <label>Node</label>
+          <select class="select" name="node_id">
+            <option value="">Auto (local)</option>
+            {% for n in nodes %}<option value="{{ n.id }}">{{ n.name }} — {{ n.hostname }}</option>{% endfor %}
+          </select>
+        </div>
+        {% endif %}
+        <div class="card" style="background:var(--grad-soft);border-color:rgba(99,102,241,0.25);padding:14px">
+          <div class="flex items-center gap-1 text-sm">{{ icon('info', 16) }} <span class="muted">Resources are dedicated to this container via LXD limits.</span></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn-primary">{{ icon('rocket', 16) }} Deploy Container</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

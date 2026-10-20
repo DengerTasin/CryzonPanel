@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}Files — {{ vps.container_name }}{% endblock %}
+{% block page_title %}File Manager{% endblock %}
+{% block page_sub %}{{ vps.container_name }} · {{ path }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('main.vps_detail', vps_id=vps.id) }}" class="btn btn-sm btn-ghost">{{ icon('arrow-left', 15) }} Back</a>
+{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+  <span class="chip">{{ icon('folder', 14) }} <span class="mono">{{ path }}</span></span>
+  {% if demo %}<span class="badge warning">{{ icon('info', 13) }} Demo data</span>{% endif %}
+  <div class="spacer"></div>
+  <form method="get" class="search-box">
+    <span class="ic">{{ icon('folder', 15) }}</span>
+    <input class="input" name="path" value="{{ path }}" placeholder="/path/to/directory">
+  </form>
+  <button class="btn btn-sm btn-primary" onclick="document.getElementById('pathInput').focus()">{{ icon('arrow-right', 14) }} Go</button>
+</div>
+
+<div class="card reveal" style="padding:0;overflow:hidden">
+  <div class="table-wrap" style="border:none;border-radius:0">
+    <table class="data">
+      <thead><tr><th>Name</th><th>Permissions</th><th>Size</th><th>Modified</th></tr></thead>
+      <tbody>
+      {% for e in entries %}
+        <tr>
+          <td>
+            <span class="flex items-center gap-1">
+              {% if e.dir %}<span style="color:#7dd3fc">{{ icon('folder', 16) }}</span>
+              {% else %}<span style="color:#a5b4fc">{{ icon('file', 16) }}</span>{% endif %}
+              {% if e.dir and e.name != '..' %}
+                <a href="{{ url_for('main.vps_files', vps_id=vps.id) }}?path={{ (path.rstrip('/') ~ '/' ~ e.name) | urlencode }}" class="mono text-sm" style="color:var(--text)">{{ e.name }}</a>
+              {% else %}
+                <span class="mono text-sm">{{ e.name }}</span>
+              {% endif %}
+            </span>
+          </td>
+          <td class="mono text-xs muted">{{ e.perm }}</td>
+          <td class="muted text-sm">{{ e.size }}</td>
+          <td class="muted text-sm">{{ e.date }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4"><div class="empty" style="padding:40px"><div class="e-ico">{{ icon('folder', 28) }}</div><h3>Empty directory</h3><p>No files to display here.</p></div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<form method="get" style="display:none">
+  <input id="pathInput" name="path" value="{{ path }}">
+</form>
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

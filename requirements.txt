@@ -1,0 +1,6 @@
+flask>=3.0
+flask-limiter>=3.5
+psutil>=5.9
+gunicorn>=21.2
+tzdata>=2024
+requests>=2.31

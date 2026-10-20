@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+
+{% block title %}Port Forwarding — {{ settings.site_name }}{% endblock %}
+{% block page_title %}Port Forwarding{% endblock %}
+{% block page_sub %}Expose services running inside your containers to the internet{% endblock %}
+
+{% block topbar_actions %}
+{% if can('vps.ports') and vps_list %}
+<button class="btn btn-primary btn-sm" data-modal-open="portModal">{{ icon('plus', 15) }} New Forward</button>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="grid cols-3 mb-3">
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico">{{ icon('git-branch', 22) }}</span></div>
+    <div class="s-val" data-count="{{ ports|length }}">0</div>
+    <div class="s-label">Active Forwards</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico" style="color:#86efac;border-color:rgba(34,197,94,0.3);background:rgba(34,197,94,0.1)">{{ icon('globe', 22) }}</span></div>
+    <div class="s-val" data-count="{{ ports|selectattr('status','equalto','active')|list|length }}">0</div>
+    <div class="s-label">Online</div>
+  </div>
+  <div class="stat reveal">
+    <div class="s-top"><span class="s-ico" style="color:#7dd3fc;border-color:rgba(56,189,248,0.3);background:rgba(56,189,248,0.1)">{{ icon('server', 22) }}</span></div>
+    <div class="s-val" data-count="{{ vps_list|length }}">0</div>
+    <div class="s-label">Containers</div>
+  </div>
+</div>
+
+<div class="card reveal" style="padding:0;overflow:hidden">
+  <div class="table-wrap" style="border:none;border-radius:0">
+    <table class="data">
+      <thead><tr><th>Container</th><th>Local Port</th><th>Public Port</th><th>Method</th><th>Public URL</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for p in ports %}
+        <tr>
+          <td><span class="flex items-center gap-1 mono text-sm">{{ icon('server', 14) }} {{ p.container_name }}</span></td>
+          <td><span class="badge">{{ p.local_port }}</span></td>
+          <td><span class="badge primary">{{ p.remote_port }}</span></td>
+          <td class="muted text-sm">{{ p.method }}</td>
+          <td>
+            {% if p.serveo_url %}
+            <span class="flex items-center gap-1">
+              <span class="mono text-xs muted">{{ p.serveo_url }}</span>
+              <button class="btn btn-xs" data-copy="{{ p.serveo_url }}">{{ icon('copy', 12) }}</button>
+            </span>
+            {% else %}<span class="muted">—</span>{% endif %}
+          </td>
+          <td><span class="badge {{ 'success' if p.status=='active' else 'stopped' }}"><span class="dot"></span>{{ p.status|capitalize }}</span></td>
+          <td>
+            <form method="post" action="{{ url_for('main.port_delete', pid=p.id) }}" data-confirm="Delete this port forward?">
+              <button class="btn btn-xs btn-danger">{{ icon('trash-2', 13) }}</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7"><div class="empty" style="padding:50px"><div class="e-ico">{{ icon('git-branch', 34) }}</div><h3>No port forwards</h3><p>Expose an application running inside a container with a single click.</p>
+        {% if can('vps.ports') and vps_list %}<button class="btn btn-primary" data-modal-open="portModal">{{ icon('plus', 16) }} Create Forward</button>{% endif %}
+        </div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if can('vps.ports') and vps_list %}
+<div class="modal-backdrop" id="portModal">
+  <div class="modal">
+    <form method="post" action="{{ url_for('main.port_create') }}">
+      <div class="modal-head">
+        <span class="s-ico" style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--grad-soft);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc">{{ icon('git-branch', 20) }}</span>
+        <div><h3>Create Port Forward</h3><div class="card-sub">Map an internal port to a public endpoint</div></div>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label>Container</label>
+          <select class="select" name="vps_id">{% for v in vps_list %}<option value="{{ v.id }}">{{ v.container_name }}</option>{% endfor %}</select>
+        </div>
+        <div class="grid cols-2">
+          <div class="field"><label>Local Port</label><input class="input" type="number" name="local_port" value="80" min="1" max="65535" required></div>
+          <div class="field"><label>Public Port (blank = auto)</label><input class="input" type="number" name="remote_port" min="1" max="65535" placeholder="auto"></div>
+        </div>
+        <div class="card" style="background:var(--grad-soft);border-color:rgba(99,102,241,0.25);padding:13px">
+          <div class="flex items-center gap-1 text-sm">{{ icon('info', 16) }} <span class="muted">Traffic is routed through the node's public IP using socat/NAT.</span></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn" data-modal-close>Cancel</button>
+        <button type="submit" class="btn btn-primary">{{ icon('check', 16) }} Create Forward</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>

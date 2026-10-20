@@ -1,0 +1,138 @@
+{% from "_icons.html" import icon %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ settings.site_name or 'CryzonCloud Cpanel' }}{% endblock %}</title>
+  <meta name="description" content="{{ settings.site_description or 'High-Performance Cloud VPS Management Panel' }}">
+  {% if settings.favicon_url %}<link rel="icon" href="{{ settings.favicon_url }}">{% else %}
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%2322d3ee'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='24' height='24' rx='6' fill='url(%23g)'/%3E%3Cpath d='M8 8h8v2H8zm0 3h8v2H8zm0 3h5v2H8z' fill='white'/%3E%3C/svg%3E">{% endif %}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block head_extra %}{% endblock %}
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+  <div class="bg-fx"><span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span></div>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a href="{{ url_for('main.dashboard') if current_user else url_for('main.index') }}" class="brand">
+        <span class="brand-logo">{{ icon('cloud', 22) }}</span>
+        <span class="brand-name">{{ settings.site_name or 'CryzonCloud' }}<span>Cpanel v3</span></span>
+      </a>
+
+      <div class="nav-scroll">
+        {% block sidebar_nav %}
+        <div class="nav-group">
+          <div class="nav-label">Overview</div>
+          <a href="{{ url_for('main.dashboard') }}" class="nav-item {{ 'active' if request.endpoint == 'main.dashboard' }}">
+            {{ icon('grid') }}<span>Dashboard</span>
+          </a>
+          {% if can('vps.view') %}
+          <a href="{{ url_for('main.dashboard') }}#vps" class="nav-item">
+            {{ icon('server') }}<span>My VPS</span>
+          </a>
+          {% endif %}
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-label">Services</div>
+          {% if can('vps.ports') %}
+          <a href="{{ url_for('main.ports') }}" class="nav-item {{ 'active' if request.endpoint == 'main.ports' }}">
+            {{ icon('git-branch') }}<span>Port Forwarding</span>
+          </a>
+          {% endif %}
+          {% if can('tickets.view') %}
+          <a href="{{ url_for('main.tickets') }}" class="nav-item {{ 'active' if request.endpoint and request.endpoint.startswith('main.ticket') }}">
+            {{ icon('life-buoy') }}<span>Support</span>
+          </a>
+          {% endif %}
+          <a href="{{ url_for('main.notifications') }}" class="nav-item {{ 'active' if request.endpoint == 'main.notifications' }}">
+            {{ icon('bell') }}<span>Notifications</span>
+          </a>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-label">Account</div>
+          <a href="{{ url_for('main.profile') }}" class="nav-item {{ 'active' if request.endpoint == 'main.profile' }}">
+            {{ icon('user') }}<span>Profile</span>
+          </a>
+          {% if is_admin_user %}
+          <a href="{{ url_for('admin.dashboard') }}" class="nav-item">
+            {{ icon('shield-check') }}<span>Admin Panel</span>
+            <span class="nav-badge">Admin</span>
+          </a>
+          {% endif %}
+        </div>
+        {% endblock %}
+      </div>
+
+      <div class="sidebar-foot">
+        <a href="{{ url_for('main.profile') }}" class="user-chip">
+          <span class="avatar">{{ (current_user.username[0]|upper) if current_user else '?' }}</span>
+          <span style="min-width:0">
+            <span class="u-name" style="display:block">{{ current_user.username if current_user else 'Guest' }}</span>
+            <span class="u-role">{{ current_user.role.name if current_user and current_user.role else 'User' }}</span>
+          </span>
+        </a>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <button class="icon-btn menu-toggle" aria-label="Menu">{{ icon('menu', 20) }}</button>
+        <div>
+          <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+          <div class="sub">{% block page_sub %}{{ settings.site_description }}{% endblock %}</div>
+        </div>
+        <div class="topbar-spacer"></div>
+
+        <div style="position:relative">
+          <button class="icon-btn" data-notif-bell aria-label="Notifications">
+            {{ icon('bell', 19) }}<span class="dot" style="display:none"></span>
+          </button>
+          <div class="notif-panel" data-notif-panel>
+            <div class="notif-head">
+              <b>Notifications</b>
+              <a href="{{ url_for('main.notifications') }}" class="text-xs muted">View all</a>
+            </div>
+            <div class="notif-body" data-notif-list>
+              <div class="muted text-sm" style="padding:18px;text-align:center">Loading…</div>
+            </div>
+          </div>
+        </div>
+
+        {% block topbar_actions %}{% endblock %}
+
+        <a href="{{ url_for('main.logout') }}" class="icon-btn" title="Sign out">{{ icon('log-out', 19) }}</a>
+      </header>
+
+      <main class="page">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  <div class="flash-wrap">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+      <div class="flash {{ cat }}">
+        <span class="f-ico">
+          {% if cat == 'success' %}{{ icon('check-circle', 20) }}
+          {% elif cat == 'error' %}{{ icon('x-circle', 20) }}
+          {% elif cat == 'warning' %}{{ icon('alert-triangle', 20) }}
+          {% else %}{{ icon('info', 20) }}{% endif %}
+        </span>
+        <span>{{ msg }}</span>
+        <button class="f-close" aria-label="Dismiss">{{ icon('x', 16) }}</button>
+      </div>
+      {% endfor %}
+    {% endwith %}
+  </div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
